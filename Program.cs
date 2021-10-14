@@ -38,6 +38,9 @@ namespace C_
             }
             Console.WriteLine();
         }
+                public void PrintFlags(){
+            Console.WriteLine(GetFlags((Flags)15));
+        }
         [Flags]
         public enum Flags{
             A_GREATER = 1,
@@ -46,7 +49,7 @@ namespace C_
             OVERFLOW = 8
         };
         public Flags GetFlags(Flags check){
-            return check;
+            return check&(Flags)REG[15].Val;
         }
         public void LoadProgram(string path){
             string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path);
@@ -240,7 +243,6 @@ namespace C_
     class Program {
         static void Main()
         {
-            var example = Emulator.Flags.A_GREATER|Emulator.Flags.OVERFLOW;
             var emulator = new Emulator();
             emulator.LoadProgram(@"..\..\..\data\program.txt");
             emulator.PrintRam();
@@ -249,8 +251,8 @@ namespace C_
             }
             emulator.PrintRam();
             emulator.PrintReg();
-            Console.WriteLine(example);
-            
+            emulator.PrintFlags();
+            Console.WriteLine(emulator.GetFlags(Emulator.Flags.EQUAL|Emulator.Flags.OVERFLOW));
         }
     }
 }
