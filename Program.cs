@@ -10,13 +10,10 @@ namespace C_
             public override string ToString() {
                 return Val.ToString();
             }
-            private uint _reg;
+            private uint _val;
             public uint Val {
-                get => _reg;
-                set {_reg = value&0xfff;}
-            }
-            public Data12Bit(uint aaa) {
-                _reg = aaa&0xfff;
+                get => _val;
+                set {_val = value&0xfff;}
             }
         }
         public Data12Bit[] RAM = new Data12Bit[4096];
@@ -38,7 +35,7 @@ namespace C_
             }
             Console.WriteLine();
         }
-                public void PrintFlags(){
+        public void PrintFlags(){
             Console.WriteLine(GetFlags((Flags)15));
         }
         [Flags]
@@ -72,6 +69,7 @@ namespace C_
         }
         int programcounter = 0;
         public void NextCommand(){
+            uint flagbuffer = 0;
             var opcode = RAM[programcounter].Val;
             var instruction = opcode&0xf;
             var arg_a = (opcode>>4)&0xf;
@@ -188,13 +186,25 @@ namespace C_
                     }
                     break;
                 case 1:
-                    REG[arg_b].Val = REG[arg_a].Val + REG[arg_b].Val;
+                    flagbuffer = REG[arg_a].Val + REG[arg_b].Val;
+                    if (flagbuffer > 4095){
+                        REG[15].Val = REG[15].Val|(uint)Flags.OVERFLOW;
+                    }
+                    REG[arg_b].Val = flagbuffer;
                     break;
                 case 2:
-                    REG[arg_b].Val = REG[arg_a].Val - REG[arg_b].Val;
+                    flagbuffer = REG[arg_a].Val - REG[arg_b].Val;
+                    if (flagbuffer > 4095){
+                        REG[15].Val = REG[15].Val|(uint)Flags.OVERFLOW;
+                    }
+                    REG[arg_b].Val = flagbuffer;
                     break;
                 case 3:
-                    REG[arg_b].Val = REG[arg_b].Val - REG[arg_a].Val;
+                    flagbuffer = REG[arg_b].Val - REG[arg_a].Val;
+                    if (flagbuffer > 4095){
+                        REG[15].Val = REG[15].Val|(uint)Flags.OVERFLOW;
+                    }
+                    REG[arg_b].Val = flagbuffer;
                     break;
                 case 4:
                     REG[arg_b].Val = REG[arg_a].Val & REG[arg_b].Val;
