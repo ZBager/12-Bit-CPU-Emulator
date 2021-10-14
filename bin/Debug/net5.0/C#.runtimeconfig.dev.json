@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "C:\\Users\\fifik\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\fifik\\.nuget\\packages"
+    ]
+  }
+}
