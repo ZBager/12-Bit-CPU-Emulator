@@ -40,10 +40,12 @@ namespace C_
         }
         [Flags]
         public enum Flags{
+            NONE = 0,
             A_GREATER = 1,
             B_GREATER = 2,
             EQUAL = 4,
-            OVERFLOW = 8
+            OVERFLOW = 8,
+            ALL = 15
         };
         public Flags GetFlags(Flags check){
             return check&(Flags)REG[15].Val;
@@ -67,10 +69,10 @@ namespace C_
         public bool isRunning(){
             return isCPUrunning;
         }
-        int programcounter = 0;
+        
         public void NextCommand(){
             uint flagbuffer = 0;
-            var opcode = RAM[programcounter].Val;
+            var opcode = RAM[REG[14].Val].Val;
             var instruction = opcode&0xf;
             var arg_a = (opcode>>4)&0xf;
             var arg_b = (opcode>>8)&0xf;
@@ -83,7 +85,9 @@ namespace C_
                                     isCPUrunning = false;
                                     break;
                                 case 1:
-                                    Console.WriteLine("dziala");
+                                    if (GetFlags(Flags.ALL) != 0){
+                                        isCPUrunning = false;
+                                    }
                                     break;
                                 case 2:
                                     Console.WriteLine("dziala");
@@ -134,11 +138,14 @@ namespace C_
                             }
                             break;
                         case 1:
-                            programcounter++;
-                            REG[arg_b].Val = RAM[programcounter].Val;
+                            REG[14].Val++;
+                            REG[arg_b].Val = RAM[REG[14].Val].Val;
                             break;
                         case 2:
-                            Console.WriteLine("dziala");
+                            if (GetFlags(Flags.ALL) != 0){
+                                REG[14].Val++;
+                                REG[arg_b].Val = RAM[REG[14].Val].Val;
+                            }
                             break;
                         case 3:
                             Console.WriteLine("dziala");
@@ -247,7 +254,7 @@ namespace C_
                     System.Environment.Exit(1);
                     break;
             }
-            programcounter++;
+            REG[14].Val++;
         }
     }
     class Program {
