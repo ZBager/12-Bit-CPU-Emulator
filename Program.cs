@@ -242,7 +242,7 @@ namespace C_
         {
             var example = Emulator.Flags.A_GREATER|Emulator.Flags.OVERFLOW;
             var emulator = new Emulator();
-            emulator.LoadProgram(@"data\program.txt");
+            emulator.LoadProgram(@"..\..\..\data\program.txt");
             emulator.PrintRam();
             while(emulator.isRunning()){
                 emulator.NextCommand();
