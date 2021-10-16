@@ -48,7 +48,7 @@ namespace C_
             ALL = 15
         };
         public Flags GetFlags(Flags check){
-            return check&(Flags)REG[15].Val;
+            return check&(Flags)REG[14].Val;
         }
         public void LoadProgram(string path){
             string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path);
@@ -72,10 +72,12 @@ namespace C_
         
         public void NextCommand(){
             uint flagbuffer = 0;
-            var opcode = RAM[REG[14].Val].Val;
+            var opcode = RAM[REG[15].Val].Val;
             var instruction = opcode&0xf;
             var arg_a = (opcode>>4)&0xf;
             var arg_b = (opcode>>8)&0xf;
+            REG[15].Val++;
+            Console.WriteLine("Next");
             switch (instruction){
                 case 0:
                     switch (arg_a){
@@ -83,10 +85,12 @@ namespace C_
                             switch (arg_b){
                                 case 0:
                                     isCPUrunning = false;
+                                    Console.WriteLine("End of Program");
                                     break;
                                 case 1:
-                                    if (GetFlags(Flags.ALL) != 0){
+                                    if (GetFlags((Flags)REG[13].Val) != 0){
                                         isCPUrunning = false;
+                                        Console.WriteLine("Conditional End of Program");
                                     }
                                     break;
                                 case 2:
@@ -138,13 +142,13 @@ namespace C_
                             }
                             break;
                         case 1:
-                            REG[14].Val++;
-                            REG[arg_b].Val = RAM[REG[14].Val].Val;
+                            REG[15].Val++;
+                            REG[arg_b].Val = RAM[(REG[15].Val - 1)].Val;
                             break;
                         case 2:
                             if (GetFlags(Flags.ALL) != 0){
-                                REG[14].Val++;
-                                REG[arg_b].Val = RAM[REG[14].Val].Val;
+                                REG[15].Val++;
+                                REG[arg_b].Val = RAM[(REG[15].Val - 1)].Val;
                             }
                             break;
                         case 3:
@@ -195,21 +199,22 @@ namespace C_
                 case 1:
                     flagbuffer = REG[arg_a].Val + REG[arg_b].Val;
                     if (flagbuffer > 4095){
-                        REG[15].Val = REG[15].Val|(uint)Flags.OVERFLOW;
+                        REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
                     }
+                    Console.WriteLine(REG[0].Val);
                     REG[arg_b].Val = flagbuffer;
                     break;
                 case 2:
                     flagbuffer = REG[arg_a].Val - REG[arg_b].Val;
                     if (flagbuffer > 4095){
-                        REG[15].Val = REG[15].Val|(uint)Flags.OVERFLOW;
+                        REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
                     }
                     REG[arg_b].Val = flagbuffer;
                     break;
                 case 3:
                     flagbuffer = REG[arg_b].Val - REG[arg_a].Val;
                     if (flagbuffer > 4095){
-                        REG[15].Val = REG[15].Val|(uint)Flags.OVERFLOW;
+                        REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
                     }
                     REG[arg_b].Val = flagbuffer;
                     break;
@@ -254,7 +259,6 @@ namespace C_
                     System.Environment.Exit(1);
                     break;
             }
-            REG[14].Val++;
         }
     }
     class Program {
@@ -268,8 +272,6 @@ namespace C_
             }
             emulator.PrintRam();
             emulator.PrintReg();
-            emulator.PrintFlags();
-            Console.WriteLine(emulator.GetFlags(Emulator.Flags.EQUAL|Emulator.Flags.OVERFLOW));
         }
     }
 }
