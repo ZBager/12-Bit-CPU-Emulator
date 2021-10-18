@@ -5,7 +5,7 @@ using System.Reflection;
 namespace C_
 {
     class Emulator{
-        //Struktura danych dla Ramu oraz Rejestrów
+        //RAM & REGISTERS data structure
         public struct Data12Bit{
             public override string ToString() {
                 return Val.ToString();
@@ -18,9 +18,9 @@ namespace C_
         }
         public Data12Bit[] RAM = new Data12Bit[4096];
         public Data12Bit[] REG = new Data12Bit[16];
-        //Wyświetlanie zawartości Ramu
+        //Displays current values stored in RAM
         public void PrintRam(){
-            Console.WriteLine("Zawartosc Ramu:");
+            Console.WriteLine("RAM Values:");
             for(int i = 0; i < RAM.Length; i += 16){
                 Console.Write("0x"+i.ToString("X3")+": ");
                 for(int j = 0; j < 16; j++){
@@ -29,14 +29,16 @@ namespace C_
                 Console.WriteLine();
             }
         }
+        //Displays current values stored in Registers
         public void PrintReg(){
-            Console.WriteLine("Zawartosc Rejestrow:");
+            Console.WriteLine("Register Values:");
             Console.Write("0x0:   ");
             for(int i = 0; i < 16; i++){
                     Console.Write(REG[i].Val.ToString("X3")+" ");
             }
             Console.WriteLine();
         }
+        //Displays current flags stored in Register 14
         public void PrintFlags(){
             Console.WriteLine(GetFlags((Flags)15));
         }
@@ -73,7 +75,6 @@ namespace C_
         public bool isRunning(){
             return isCPUrunning;
         }
-        
         public void NextCommand(){
             uint flagbuffer = 0;
             var opcode = RAM[REG[15].Val].Val;
@@ -88,56 +89,56 @@ namespace C_
                         case 0:
                             switch (arg_b){
                                 case 0:
+                                    // Stop
                                     isCPUrunning = false;
-                                    //Console.WriteLine("End of Program");
                                     break;
                                 case 1:
+                                    // Conditional Stop
                                     if (GetFlags((Flags)REG[13].Val) != 0){
                                         isCPUrunning = false;
-                                        //Console.WriteLine("Conditional End of Program");
                                     }
                                     break;
                                 case 2:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 3:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 4:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 5:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 6:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 7:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 8:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 9:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 10:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 11:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 12:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 13:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 14:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 case 15:
-                                    Console.WriteLine("dziala");
+                                    Console.WriteLine("PLACEHOLDER");
                                     break;
                                 default:
                                     Console.WriteLine("Program Error (Invalid Command)");
@@ -146,53 +147,66 @@ namespace C_
                             }
                             break;
                         case 1:
+                            // Move N1, Reg[b]
                             REG[15].Val++;
                             REG[arg_b].Val = RAM[(REG[15].Val - 1)].Val;
                             break;
                         case 2:
+                            // Conditional Move N1, Reg[b]
                             if (GetFlags(Flags.ALL) != 0){
                                 REG[15].Val++;
                                 REG[arg_b].Val = RAM[(REG[15].Val - 1)].Val;
                             }
                             break;
                         case 3:
-                            Console.WriteLine("dziala");
+                            // Increment Reg[b]
+                            flagbuffer = REG[arg_b].Val++;
+                                if (flagbuffer > 4095){
+                                    REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
+                                }
+                                REG[arg_b].Val = flagbuffer;
                             break;
                         case 4:
-                            Console.WriteLine("dziala");
+                            // Decrement Reg[b]
+                            flagbuffer = REG[arg_b].Val--;
+                                if (flagbuffer > 4095){
+                                    REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
+                                }
+                                REG[arg_b].Val = flagbuffer;
                             break;
                         case 5:
-                            Console.WriteLine("dziala");
+                            // Not Reg[b] (done as xor with max value because you cannot negate uint values)
+                            REG[arg_b].Val = REG[arg_b].Val^0xfff;
                             break;
                         case 6:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 7:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 8:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 9:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 10:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 11:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 12:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 13:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 14:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         case 15:
-                            Console.WriteLine("dziala");
+                            Console.WriteLine("PLACEHOLDER");
                             break;
                         default:
                             Console.WriteLine("Program Error (Invalid Command)");
@@ -231,16 +245,16 @@ namespace C_
                     REG[arg_b].Val = REG[arg_a].Val ^ REG[arg_b].Val;
                     break;
                 case 7:
-                    Console.WriteLine("dziala");
+                    Console.WriteLine("PLACEHOLDER");
                     break;
                 case 8:
-                    Console.WriteLine("dziala");
+                    Console.WriteLine("PLACEHOLDER");
                     break;
                 case 9:
-                    Console.WriteLine("dziala");
+                    Console.WriteLine("PLACEHOLDER");
                     break;
                 case 10:
-                    Console.WriteLine("dziala");
+                    Console.WriteLine("PLACEHOLDER");
                     break;
                 case 11:
                     if (REG[arg_b].Val > REG[arg_a].Val){
