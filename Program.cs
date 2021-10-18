@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace C_
 {
-    class Emulator {
+    class Emulator{
         //Struktura danych dla Ramu oraz Rejestrów
         public struct Data12Bit{
             public override string ToString() {
@@ -22,6 +22,7 @@ namespace C_
         public void PrintRam(){
             Console.WriteLine("Zawartosc Ramu:");
             for(int i = 0; i < RAM.Length; i += 16){
+                Console.Write("0x"+i.ToString("X3")+": ");
                 for(int j = 0; j < 16; j++){
                     Console.Write(RAM[i+j].Val.ToString("X3")+" ");
                 }
@@ -30,6 +31,7 @@ namespace C_
         }
         public void PrintReg(){
             Console.WriteLine("Zawartosc Rejestrow:");
+            Console.Write("0x0:   ");
             for(int i = 0; i < 16; i++){
                     Console.Write(REG[i].Val.ToString("X3")+" ");
             }
@@ -55,10 +57,12 @@ namespace C_
             if (File.Exists(program_path)) {
                 int ram_pointer = 0;
                 string[] program_ram = File.ReadAllLines(program_path);
-                foreach (string line in program_ram) {
-                uint value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
-                RAM[ram_pointer].Val = value;
-                ram_pointer = ram_pointer + 1;
+                foreach (string line in program_ram){
+                    if (!line.StartsWith("#")){
+                        uint value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
+                        RAM[ram_pointer].Val = value;
+                        ram_pointer = ram_pointer + 1;
+                    }
                 }
             } else {
             Console.WriteLine("Program file does not exist");
@@ -85,12 +89,12 @@ namespace C_
                             switch (arg_b){
                                 case 0:
                                     isCPUrunning = false;
-                                    Console.WriteLine("End of Program");
+                                    //Console.WriteLine("End of Program");
                                     break;
                                 case 1:
                                     if (GetFlags((Flags)REG[13].Val) != 0){
                                         isCPUrunning = false;
-                                        Console.WriteLine("Conditional End of Program");
+                                        //Console.WriteLine("Conditional End of Program");
                                     }
                                     break;
                                 case 2:
@@ -201,7 +205,6 @@ namespace C_
                     if (flagbuffer > 4095){
                         REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
                     }
-                    Console.WriteLine(REG[0].Val);
                     REG[arg_b].Val = flagbuffer;
                     break;
                 case 2:
@@ -240,10 +243,21 @@ namespace C_
                     Console.WriteLine("dziala");
                     break;
                 case 11:
-                    Console.WriteLine("dziala");
+                    if (REG[arg_b].Val > REG[arg_a].Val){
+                        REG[14].Val = REG[14].Val|(uint)Flags.B_GREATER;
+                    } else if (REG[arg_b].Val < REG[arg_a].Val){
+                        REG[14].Val = REG[14].Val|(uint)Flags.A_GREATER;
+                    } else if (REG[arg_b].Val == REG[arg_a].Val){
+                        REG[14].Val = REG[14].Val|(uint)Flags.EQUAL;
+                    } else {
+                        Console.WriteLine("Comparation Error");
+                        System.Environment.Exit(1);
+                    }
                     break;
                 case 12:
-                    Console.WriteLine("dziala");
+                    if (GetFlags((Flags)REG[13].Val) != 0){
+                        REG[arg_b].Val = REG[arg_a].Val;
+                    }
                     break;
                 case 13:
                     REG[arg_b].Val = REG[arg_a].Val;
