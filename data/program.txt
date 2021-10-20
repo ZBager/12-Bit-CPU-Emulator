@@ -1,15 +1,14 @@
-#Testowy program zapełniający pamięć RAM od adresu 0x0f0 do 0xfff wybraną wartością
+//Testowy program zapełniający pamięć RAM od adresu 0x0f0 do 0xfff wybraną wartością
 010
 010
 110
 001
 d10
 008
-210
-#Wartość wpisywana do komórek pamięci ram
-fff
+//Wartość wpisywana do komórek pamięci ram
+270
 02e
 011
 100
 f10
-008
+007

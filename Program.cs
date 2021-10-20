@@ -22,9 +22,9 @@ namespace C_
         public void PrintRam(){
             Console.WriteLine("RAM Values:");
             for(int i = 0; i < RAM.Length; i += 16){
-                Console.Write("0x"+i.ToString("X3")+": ");
+                Console.Write("0x" + i.ToString("X3") + ": ");
                 for(int j = 0; j < 16; j++){
-                    Console.Write(RAM[i+j].Val.ToString("X3")+" ");
+                    Console.Write(RAM[i+j].Val.ToString("X3") + " ");
                 }
                 Console.WriteLine();
             }
@@ -60,7 +60,7 @@ namespace C_
                 int ram_pointer = 0;
                 string[] program_ram = File.ReadAllLines(program_path);
                 foreach (string line in program_ram){
-                    if (!line.StartsWith("#")){
+                    if (!line.StartsWith("//")){
                         uint value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
                         RAM[ram_pointer].Val = value;
                         ram_pointer = ram_pointer + 1;
@@ -179,10 +179,25 @@ namespace C_
                             REG[arg_b].Val = REG[arg_b].Val^0xfff;
                             break;
                         case 6:
+                            // Right Shift
+                            flagbuffer = REG[arg_b].Val&0x1;
+                                if (flagbuffer == 1){
+                                    REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
+                                }
+                                REG[arg_b].Val = REG[arg_b].Val>>1;
                             Console.WriteLine("PLACEHOLDER");
                             break;
                         case 7:
-                            Console.WriteLine("PLACEHOLDER");
+                            // User Input Interrupt
+                            while(true){
+                                try{
+                                    Console.WriteLine("Please Input Data (HEX) for the CPU: ");
+                                    REG[arg_b].Val = UInt32.Parse(Console.ReadLine(), System.Globalization.NumberStyles.HexNumber);
+                                    break;
+                                }catch(Exception){
+                                    Console.WriteLine("Invalid Value");
+                                }
+                            }
                             break;
                         case 8:
                             Console.WriteLine("PLACEHOLDER");
