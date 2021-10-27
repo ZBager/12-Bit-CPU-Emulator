@@ -18,6 +18,23 @@ namespace C_
         }
         public Data12Bit[] RAM = new Data12Bit[4096];
         public Data12Bit[] REG = new Data12Bit[16];
+        public void LoadProgram(string path){
+            string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path);
+            if (File.Exists(program_path)) {
+                int ram_pointer = 0;
+                string[] program_ram = File.ReadAllLines(program_path);
+                foreach (string line in program_ram){
+                    if (!line.StartsWith("//")){
+                        uint value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
+                        RAM[ram_pointer].Val = value;
+                        ram_pointer = ram_pointer + 1;
+                    }
+                }
+            } else {
+            Console.WriteLine("Program file does not exist");
+            System.Environment.Exit(1);
+            }
+        }
         //Displays current values stored in RAM
         public void PrintRam(){
             Console.WriteLine("RAM Values:");
@@ -53,23 +70,6 @@ namespace C_
         };
         public Flags GetFlags(Flags check){
             return check&(Flags)REG[14].Val;
-        }
-        public void LoadProgram(string path){
-            string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path);
-            if (File.Exists(program_path)) {
-                int ram_pointer = 0;
-                string[] program_ram = File.ReadAllLines(program_path);
-                foreach (string line in program_ram){
-                    if (!line.StartsWith("//")){
-                        uint value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
-                        RAM[ram_pointer].Val = value;
-                        ram_pointer = ram_pointer + 1;
-                    }
-                }
-            } else {
-            Console.WriteLine("Program file does not exist");
-            System.Environment.Exit(1);
-            }
         }
         private bool isCPUrunning = true;
         public bool isRunning(){
@@ -230,6 +230,7 @@ namespace C_
                     }
                     break;
                 case 1:
+                    // Addition
                     flagbuffer = REG[arg_a].Val + REG[arg_b].Val;
                     if (flagbuffer > 4095){
                         REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
@@ -237,6 +238,7 @@ namespace C_
                     REG[arg_b].Val = flagbuffer;
                     break;
                 case 2:
+                    // Subtract
                     flagbuffer = REG[arg_a].Val - REG[arg_b].Val;
                     if (flagbuffer > 4095){
                         REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
@@ -244,6 +246,7 @@ namespace C_
                     REG[arg_b].Val = flagbuffer;
                     break;
                 case 3:
+                    // Reversed Subtract
                     flagbuffer = REG[arg_b].Val - REG[arg_a].Val;
                     if (flagbuffer > 4095){
                         REG[14].Val = REG[14].Val|(uint)Flags.OVERFLOW;
@@ -251,12 +254,15 @@ namespace C_
                     REG[arg_b].Val = flagbuffer;
                     break;
                 case 4:
+                    // AND
                     REG[arg_b].Val = REG[arg_a].Val & REG[arg_b].Val;
                     break;
                 case 5:
+                    // OR
                     REG[arg_b].Val = REG[arg_a].Val | REG[arg_b].Val;
                     break;
                 case 6:
+                    // XOR
                     REG[arg_b].Val = REG[arg_a].Val ^ REG[arg_b].Val;
                     break;
                 case 7:
@@ -272,6 +278,7 @@ namespace C_
                     Console.WriteLine("PLACEHOLDER");
                     break;
                 case 11:
+                    // Number Comparasion
                     if (REG[arg_b].Val > REG[arg_a].Val){
                         REG[14].Val = REG[14].Val|(uint)Flags.B_GREATER;
                     } else if (REG[arg_b].Val < REG[arg_a].Val){
@@ -284,17 +291,21 @@ namespace C_
                     }
                     break;
                 case 12:
+                    // Conditional Move Reg -> Reg
                     if (GetFlags((Flags)REG[13].Val) != 0){
                         REG[arg_b].Val = REG[arg_a].Val;
                     }
                     break;
                 case 13:
+                    // Move Reg -> Reg
                     REG[arg_b].Val = REG[arg_a].Val;
                     break;
                 case 14:
+                    // Move Reg -> RAM
                     RAM[REG[arg_b].Val].Val = REG[arg_a].Val;
                     break;
                 case 15:
+                    // Move RAM -> Reg
                     REG[arg_b].Val = RAM[REG[arg_a].Val].Val;
                     break;
                 default:
@@ -305,8 +316,7 @@ namespace C_
         }
     }
     class Program {
-        static void Main()
-        {
+        static void Main(){
             var emulator = new Emulator();
             emulator.LoadProgram(@"..\..\..\data\program.txt");
             emulator.PrintRam();
