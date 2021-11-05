@@ -43,7 +43,7 @@ namespace C_
         }
         //Displays current Values stored in RAM
         public void PrintRam(){
-            Console.WriteLine("RAM ValAues:");
+            Console.WriteLine("RAM Values:");
             for(int i = 0; i < RAM.Length; i += 16){
                 Console.Write("0x" + i.ToString("X3") + ": ");
                 for(int j = 0; j < 16; j++){
@@ -54,7 +54,7 @@ namespace C_
         }
         //Displays current Values stored in Registers
         public void PrintReg(){
-            Console.WriteLine("Register ValAues:");
+            Console.WriteLine("Register Values:");
             Console.Write("0x0:   ");
             for(int i = 0; i < 16; i++){
                     Console.Write(REG[i].ValA.ToString("X3")+" ");
