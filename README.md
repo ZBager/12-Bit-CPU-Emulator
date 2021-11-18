@@ -25,13 +25,13 @@
 | Used as Address  | 5                | 0                | Not Reg[b]                       |
 | Used as Address  | 6                | 0                | Rsh Reg[b]                       |
 | Used as Address  | 7                | 0                | User Input, Reg[b]               |
-| Used as Address  | 8                | 0                | Empty Instruction                |
-| Used as Address  | 9                | 0                | Empty Instruction                |
-| Used as Address  | A                | 0                | Empty Instruction                |
-| Used as Address  | B                | 0                | Empty Instruction                |
-| Used as Address  | C                | 0                | Empty Instruction                |
-| Used as Address  | D                | 0                | Empty Instruction                |
-| Used as Address  | E                | 0                | Empty Instruction                |
+| Used as Address  | 8                | 0                | Add N1, Reg[b]                   |
+| Used as Address  | 9                | 0                | Sub N1, Reg[b]                   |
+| Used as Address  | A                | 0                | Rsub N1, Reg[b]                  |
+| Used as Address  | B                | 0                | And N1, Reg[b]                   |
+| Used as Address  | C                | 0                | Or N1, Reg[b]                    |
+| Used as Address  | D                | 0                | Xor N1, Reg[b]                   |
+| Used as Address  | E                | 0                | Compare N1, Reg[b]               |
 | Used as Address  | F                | 0                | Empty Instruction                |
 | **Op Code**      | **Op Code**      | **Op Code**      |                                  |
 | 0                | 0                | 0                | Stop                             |

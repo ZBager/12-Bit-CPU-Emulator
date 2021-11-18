@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using System.Diagnostics;
 
 namespace CpuEmulator
 {
@@ -83,14 +82,12 @@ namespace CpuEmulator
             return _isCpuRunning;
         }
         public void NextCommand(){
-            total_insr += 1;
             uint flagbuffer = 0;
             var opcode = RAM[REG[15].ValA].ValA;
             var instruction = opcode&0xf;
             var arg_a = (opcode>>4)&0xf;
             var arg_b = (opcode>>8)&0xf;
             REG[15].ValA++;
-//            Console.WriteLine("Next");
             switch (instruction){
                 case 0:
                     switch (arg_a){
@@ -212,25 +209,66 @@ namespace CpuEmulator
                             }
                             break;
                         case 8:
-                            Console.WriteLine("PLACEHOLDER");
+                            // Addition N1 + Reg
+                            REG[15].ValA++;
+                            flagbuffer = RAM[(REG[15].ValA - 1)].ValA + REG[arg_b].ValA;
+                            if (flagbuffer > 4095){
+                                REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
+                                REG[arg_b].ValA = flagbuffer;
+                            } else {
+                                REG[arg_b].ValB = flagbuffer;
+                            }
                             break;
                         case 9:
-                            Console.WriteLine("PLACEHOLDER");
+                            // Subtract N1 - Reg
+                            REG[15].ValA++;
+                            flagbuffer = RAM[(REG[15].ValA - 1)].ValA - REG[arg_b].ValA;
+                            if (flagbuffer > 4095){
+                                REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
+                                REG[arg_b].ValA = flagbuffer;
+                            } else {
+                                REG[arg_b].ValB = flagbuffer;
+                            }
                             break;
                         case 10:
-                            Console.WriteLine("PLACEHOLDER");
+                            // Reversed Subtract Reg - N1
+                            REG[15].ValA++;
+                            flagbuffer = REG[arg_b].ValA - RAM[(REG[15].ValA - 1)].ValA;
+                            if (flagbuffer > 4095){
+                                REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
+                                REG[arg_b].ValA = flagbuffer;
+                            } else {
+                                REG[arg_b].ValB = flagbuffer;
+                            }
                             break;
                         case 11:
-                            Console.WriteLine("PLACEHOLDER");
+                            // AND N1 & Reg
+                            REG[15].ValA++;
+                            REG[arg_b].ValB = RAM[(REG[15].ValA - 1)].ValA & REG[arg_b].ValA;
                             break;
                         case 12:
-                            Console.WriteLine("PLACEHOLDER");
+                            // OR N1 | Reg
+                            REG[15].ValA++;
+                            REG[arg_b].ValB = RAM[(REG[15].ValA - 1)].ValA | REG[arg_b].ValA;
                             break;
                         case 13:
-                            Console.WriteLine("PLACEHOLDER");
+                            // XOR N1 ^ Reg
+                            REG[15].ValA++;
+                            REG[arg_b].ValB = RAM[(REG[15].ValA - 1)].ValA ^ REG[arg_b].ValA;
                             break;
                         case 14:
-                            Console.WriteLine("PLACEHOLDER");
+                            // Number Comparasion N1 ? Reg
+                            REG[15].ValA++;
+                            if (REG[arg_b].ValA > RAM[(REG[15].ValA - 1)].ValA){
+                                REG[14].ValB = REG[14].ValA|(uint)Flags.BGreater;
+                            } else if (REG[arg_b].ValA < RAM[(REG[15].ValA - 1)].ValA){
+                                REG[14].ValB = REG[14].ValA|(uint)Flags.AGreater;
+                            } else if (REG[arg_b].ValA == RAM[(REG[15].ValA - 1)].ValA){
+                                REG[14].ValB = REG[14].ValA|(uint)Flags.Equal;
+                            } else {
+                                Console.WriteLine("Comparation Error");
+                                Environment.Exit(1);
+                            }
                             break;
                         case 15:
                             Console.WriteLine("PLACEHOLDER");
@@ -335,30 +373,13 @@ namespace CpuEmulator
     }
 
     static class Program {
-        // static void Main(){
-        //     var emulator = new Emulator();
-        //     emulator.LoadProgram(@"..\..\..\data\program.txt");
-        //     emulator.PrintRam();
-        //     while(emulator.isRunning()){
-        //         emulator.NextCommand();
-        //     }
-        //     emulator.PrintRam();
-        //     emulator.PrintReg();
-        // }
-static void Main(){
+        static void Main(){
             var emulator = new Emulator();
             emulator.LoadProgram(@"..\..\..\data\program.txt");
             emulator.PrintRam();
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            int commandAmount = 0;
             while(emulator.IsRunning()){
                 emulator.NextCommand();
-                commandAmount++;
             }
-            stopwatch.Stop();
-            Console.WriteLine("Total:" + stopwatch.ElapsedMilliseconds);
-            Console.WriteLine("per_instr:" + ((float)stopwatch.ElapsedMilliseconds/(float)emulator.total_insr)*1000);
-            Console.WriteLine(commandAmount);
             emulator.PrintRam();
             emulator.PrintReg();
         }
