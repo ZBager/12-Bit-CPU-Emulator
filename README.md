@@ -1,7 +1,7 @@
 # 12-Bit-CPU-Emulator
 
 | Arg B  | Arg A | Op Code | Description |
-| ------------- | ------------- | ------------- | ------------- |
+| :---: | :---: | :---: | :--- |
 | Used as Address  | Used as Address  | 1  | Add Reg[a], Reg[b]  |
 | Used as Address  | Used as Address  | 2  | Sub Reg[a], Reg[b]  |
 | Used as Address  | Used as Address  | 3  | Rsub Reg[a], Reg[b]  |
@@ -17,7 +17,7 @@
 | Used as Address  | Used as Address  | D  | Mov Reg[a], Reg[b]  |
 | Used as Address  | Used as Address  | E  | Mov Reg[a], Ram[Reg[b]]  |
 | Used as Address  | Used as Address  | F  | Mov Ram[Reg[a]], Reg[b]  |
-| **Arg B** | **Op Code** | **Op Code** | **-------------** |
+| **Arg B** | **Op Code** | **Op Code** |   |
 | Used as Address  | 1  | 0  | Mov N1, Reg[b]  |
 | Used as Address  | 2  | 0  | Conditional Mov N1, Reg[b]  |
 | Used as Address  | 3  | 0  | Inc Reg[b]  |
@@ -33,7 +33,7 @@
 | Used as Address  | D  | 0  | Empty Instruction  |
 | Used as Address  | E  | 0  | Empty Instruction  |
 | Used as Address  | F  | 0  | Empty Instruction  |
-| **Op Code** | **Op Code** | **Op Code** | **-------------** |
+| **Op Code** | **Op Code** | **Op Code** |   |
 | 0  | 0  | 0  | Stop  |
 | 1  | 0  | 0  | Conditional Stop  |
 | 2  | 0  | 0  | Clear Flags  |
