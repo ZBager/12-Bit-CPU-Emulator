@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Diagnostics;
 
-namespace C_
+namespace CpuEmulator
 {
     class Emulator{
         //RAM & REGISTERS data structure
@@ -11,14 +11,14 @@ namespace C_
             public override string ToString() {
                 return ValA.ToString();
             }
-            private uint _Val;
+            private uint _val;
             public uint ValA {
-                get => _Val;
-                set {_Val = value&0xfff;}
+                get => _val;
+                set => _val = value&0xfff;
             }
             public uint ValB {
-                get => _Val;
-                set {_Val = value;}
+                get => _val;
+                set => _val = value;
             }
         }
         public Data12Bit[] RAM = new Data12Bit[4096];
@@ -37,8 +37,8 @@ namespace C_
                     }
                 }
             } else {
-            Console.WriteLine("Program file does not exist");
-            System.Environment.Exit(1);
+                Console.WriteLine("Program file does not exist");
+                System.Environment.Exit(1);
             }
         }
         //Displays current Values stored in RAM
@@ -67,19 +67,20 @@ namespace C_
         }
         [Flags]
         public enum Flags{
-            NONE = 0,
-            A_GREATER = 1,
-            B_GREATER = 2,
-            EQUAL = 4,
-            OVERFLOW = 8,
-            ALL = 15
+            None = 0,
+            AGreater = 1,
+            BGreater = 2,
+            Equal = 4,
+            Overflow = 8,
+            All = 15
         };
-        public Flags GetFlags(Flags check){
+
+        private Flags GetFlags(Flags check){
             return check&(Flags)REG[14].ValA;
         }
-        private bool isCPUrunning = true;
-        public bool isRunning(){
-            return isCPUrunning;
+        private bool _isCpuRunning = true;
+        public bool IsRunning(){
+            return _isCpuRunning;
         }
         public void NextCommand(){
             total_insr += 1;
@@ -97,12 +98,12 @@ namespace C_
                             switch (arg_b){
                                 case 0:
                                     // Stop
-                                    isCPUrunning = false;
+                                    _isCpuRunning = false;
                                     break;
                                 case 1:
                                     // Conditional Stop
                                     if (GetFlags((Flags)REG[13].ValA) != 0){
-                                        isCPUrunning = false;
+                                        _isCpuRunning = false;
                                     }
                                     break;
                                 case 2:
@@ -160,7 +161,7 @@ namespace C_
                             break;
                         case 2:
                             // Conditional Move N1, Reg[b]
-                            if (GetFlags(Flags.ALL) != 0){
+                            if (GetFlags(Flags.All) != 0){
                                 REG[15].ValA++;
                                 REG[arg_b].ValB = RAM[(REG[15].ValA - 1)].ValA;
                             }
@@ -169,7 +170,7 @@ namespace C_
                             // Increment Reg[b]
                             flagbuffer = REG[arg_b].ValA + 1;
                                 if (flagbuffer > 4095){
-                                    REG[14].ValB = REG[14].ValA|(uint)Flags.OVERFLOW;
+                                    REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
                                     REG[arg_b].ValA = flagbuffer;
                                 } else {
                                     REG[arg_b].ValB = flagbuffer;
@@ -179,7 +180,7 @@ namespace C_
                             // Decrement Reg[b]
                             flagbuffer = REG[arg_b].ValA - 1;
                                 if (flagbuffer > 4095){
-                                    REG[14].ValB = REG[14].ValA|(uint)Flags.OVERFLOW;
+                                    REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
                                     REG[arg_b].ValA = flagbuffer;
                                 } else {
                                     REG[arg_b].ValB = flagbuffer;
@@ -193,7 +194,7 @@ namespace C_
                             // Right Shift
                             flagbuffer = REG[arg_b].ValA&0x1;
                                 if (flagbuffer == 1){
-                                    REG[14].ValB = REG[14].ValA|(uint)Flags.OVERFLOW;
+                                    REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
                                 }
                                 REG[arg_b].ValB = REG[arg_b].ValA>>1;
                             Console.WriteLine("PLACEHOLDER");
@@ -203,7 +204,7 @@ namespace C_
                             while(true){
                                 try{
                                     Console.WriteLine("Please Input Data (HEX) for the CPU: ");
-                                    REG[arg_b].ValA = UInt32.Parse(Console.ReadLine(), System.Globalization.NumberStyles.HexNumber);
+                                    REG[arg_b].ValA = UInt32.Parse(Console.ReadLine() ?? throw new Exception(), System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 }catch(Exception){
                                     Console.WriteLine("Invalid Value");
@@ -236,7 +237,7 @@ namespace C_
                             break;
                         default:
                             Console.WriteLine("Program Error (Invalid Command)");
-                            System.Environment.Exit(1);
+                            Environment.Exit(1);
                             break;
                     }
                     break;
@@ -244,7 +245,7 @@ namespace C_
                     // Addition
                     flagbuffer = REG[arg_a].ValA + REG[arg_b].ValA;
                     if (flagbuffer > 4095){
-                        REG[14].ValB = REG[14].ValA|(uint)Flags.OVERFLOW;
+                        REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
                         REG[arg_b].ValA = flagbuffer;
                     } else {
                         REG[arg_b].ValB = flagbuffer;
@@ -254,7 +255,7 @@ namespace C_
                     // Subtract
                     flagbuffer = REG[arg_a].ValA - REG[arg_b].ValA;
                     if (flagbuffer > 4095){
-                        REG[14].ValB = REG[14].ValA|(uint)Flags.OVERFLOW;
+                        REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
                         REG[arg_b].ValA = flagbuffer;
                     } else {
                         REG[arg_b].ValB = flagbuffer;
@@ -264,7 +265,7 @@ namespace C_
                     // Reversed Subtract
                     flagbuffer = REG[arg_b].ValA - REG[arg_a].ValA;
                     if (flagbuffer > 4095){
-                        REG[14].ValB = REG[14].ValA|(uint)Flags.OVERFLOW;
+                        REG[14].ValB = REG[14].ValA|(uint)Flags.Overflow;
                         REG[arg_b].ValA = flagbuffer;
                     } else {
                         REG[arg_b].ValB = flagbuffer;
@@ -297,14 +298,14 @@ namespace C_
                 case 11:
                     // Number Comparasion
                     if (REG[arg_b].ValA > REG[arg_a].ValA){
-                        REG[14].ValB = REG[14].ValA|(uint)Flags.B_GREATER;
+                        REG[14].ValB = REG[14].ValA|(uint)Flags.BGreater;
                     } else if (REG[arg_b].ValA < REG[arg_a].ValA){
-                        REG[14].ValB = REG[14].ValA|(uint)Flags.A_GREATER;
+                        REG[14].ValB = REG[14].ValA|(uint)Flags.AGreater;
                     } else if (REG[arg_b].ValA == REG[arg_a].ValA){
-                        REG[14].ValB = REG[14].ValA|(uint)Flags.EQUAL;
+                        REG[14].ValB = REG[14].ValA|(uint)Flags.Equal;
                     } else {
                         Console.WriteLine("Comparation Error");
-                        System.Environment.Exit(1);
+                        Environment.Exit(1);
                     }
                     break;
                 case 12:
@@ -327,12 +328,13 @@ namespace C_
                     break;
                 default:
                     Console.WriteLine("Program Error (Invalid Command)");
-                    System.Environment.Exit(1);
+                    Environment.Exit(1);
                     break;
             }
         }
     }
-    class Program {
+
+    static class Program {
         // static void Main(){
         //     var emulator = new Emulator();
         //     emulator.LoadProgram(@"..\..\..\data\program.txt");
@@ -347,13 +349,16 @@ static void Main(){
             var emulator = new Emulator();
             emulator.LoadProgram(@"..\..\..\data\program.txt");
             emulator.PrintRam();
-            Stopwatch stopwatch = Stopwatch.StartNew(); 
-            while(emulator.isRunning()){
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            int commandAmount = 0;
+            while(emulator.IsRunning()){
                 emulator.NextCommand();
+                commandAmount++;
             }
             stopwatch.Stop();
             Console.WriteLine("Total:" + stopwatch.ElapsedMilliseconds);
             Console.WriteLine("per_instr:" + ((float)stopwatch.ElapsedMilliseconds/(float)emulator.total_insr)*1000);
+            Console.WriteLine(commandAmount);
             emulator.PrintRam();
             emulator.PrintReg();
         }
