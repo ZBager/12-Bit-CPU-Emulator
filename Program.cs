@@ -45,7 +45,7 @@ namespace CpuEmulator
                     if (!line.StartsWith("//")){
                         uint Value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
                         RAM[ram_pointer].ValA = Value;
-                        ram_pointer = ram_pointer + 1;
+                        ram_pointer++;
                     }
                 }
             } else {
@@ -95,7 +95,7 @@ namespace CpuEmulator
             return _isCpuRunning;
         }
         public void NextCommand(){
-            uint flagbuffer = 0;
+            uint flagbuffer;
             var opcode = RAM[CounterReg].ValA;
             var instruction = opcode&0xf;
             var arg_a = (opcode>>4)&0xf;
@@ -138,7 +138,7 @@ namespace CpuEmulator
                             // Increment Reg[b]
                             flagbuffer = REG[arg_b].ValA + 1;
                                 if (flagbuffer > 4095){
-                                    FlagReg = FlagReg|(uint)Flags.Overflow;
+                                FlagReg |= (uint)Flags.Overflow;
                                     REG[arg_b].ValA = flagbuffer;
                                 } else {
                                     REG[arg_b].ValB = flagbuffer;
@@ -148,7 +148,7 @@ namespace CpuEmulator
                             // Decrement Reg[b]
                             flagbuffer = REG[arg_b].ValA - 1;
                                 if (flagbuffer > 4095){
-                                    FlagReg = FlagReg|(uint)Flags.Overflow;
+                                    FlagReg |= (uint)Flags.Overflow;
                                     REG[arg_b].ValA = flagbuffer;
                                 } else {
                                     REG[arg_b].ValB = flagbuffer;
@@ -162,7 +162,7 @@ namespace CpuEmulator
                             // Right Shift
                             flagbuffer = REG[arg_b].ValA&0x1;
                                 if (flagbuffer == 1){
-                                    FlagReg = FlagReg|(uint)Flags.Overflow;
+                                    FlagReg |= (uint)Flags.Overflow;
                                 }
                                 REG[arg_b].ValB = REG[arg_b].ValA>>1;
                             Console.WriteLine("PLACEHOLDER");
@@ -184,7 +184,7 @@ namespace CpuEmulator
                             CounterReg++;
                             flagbuffer = RAM[(CounterReg - 1)].ValA + REG[arg_b].ValA;
                             if (flagbuffer > 4095){
-                                FlagReg = FlagReg|(uint)Flags.Overflow;
+                                FlagReg |= (uint)Flags.Overflow;
                                 REG[arg_b].ValA = flagbuffer;
                             } else {
                                 REG[arg_b].ValB = flagbuffer;
@@ -195,7 +195,7 @@ namespace CpuEmulator
                             CounterReg++;
                             flagbuffer = RAM[(CounterReg - 1)].ValA - REG[arg_b].ValA;
                             if (flagbuffer > 4095){
-                                FlagReg = FlagReg|(uint)Flags.Overflow;
+                                FlagReg |= (uint)Flags.Overflow;
                                 REG[arg_b].ValA = flagbuffer;
                             } else {
                                 REG[arg_b].ValB = flagbuffer;
@@ -206,7 +206,7 @@ namespace CpuEmulator
                             CounterReg++;
                             flagbuffer = REG[arg_b].ValA - RAM[(CounterReg - 1)].ValA;
                             if (flagbuffer > 4095){
-                                FlagReg = FlagReg|(uint)Flags.Overflow;
+                                FlagReg |= (uint)Flags.Overflow;
                                 REG[arg_b].ValA = flagbuffer;
                             } else {
                                 REG[arg_b].ValB = flagbuffer;
@@ -231,11 +231,11 @@ namespace CpuEmulator
                             // Number Comparasion N1 ? Reg
                             CounterReg++;
                             if (REG[arg_b].ValA > RAM[(CounterReg - 1)].ValA){
-                                FlagReg = FlagReg|(uint)Flags.BGreater;
+                                FlagReg |= (uint)Flags.BGreater;
                             } else if (REG[arg_b].ValA < RAM[(CounterReg - 1)].ValA){
-                                FlagReg = FlagReg|(uint)Flags.AGreater;
+                                FlagReg |= (uint)Flags.AGreater;
                             } else if (REG[arg_b].ValA == RAM[(CounterReg - 1)].ValA){
-                                FlagReg = FlagReg|(uint)Flags.Equal;
+                                FlagReg |= (uint)Flags.Equal;
                             } else {
                                 Console.WriteLine("Comparation Error");
                                 Environment.Exit(1);
@@ -251,7 +251,7 @@ namespace CpuEmulator
                     // Addition
                     flagbuffer = REG[arg_a].ValA + REG[arg_b].ValA;
                     if (flagbuffer > 4095){
-                        FlagReg = FlagReg|(uint)Flags.Overflow;
+                        FlagReg |= (uint)Flags.Overflow;
                         REG[arg_b].ValA = flagbuffer;
                     } else {
                         REG[arg_b].ValB = flagbuffer;
@@ -261,7 +261,7 @@ namespace CpuEmulator
                     // Subtract
                     flagbuffer = REG[arg_a].ValA - REG[arg_b].ValA;
                     if (flagbuffer > 4095){
-                        FlagReg = FlagReg|(uint)Flags.Overflow;
+                        FlagReg |= (uint)Flags.Overflow;
                         REG[arg_b].ValA = flagbuffer;
                     } else {
                         REG[arg_b].ValB = flagbuffer;
@@ -271,7 +271,7 @@ namespace CpuEmulator
                     // Reversed Subtract
                     flagbuffer = REG[arg_b].ValA - REG[arg_a].ValA;
                     if (flagbuffer > 4095){
-                        FlagReg = FlagReg|(uint)Flags.Overflow;
+                        FlagReg |= (uint)Flags.Overflow;
                         REG[arg_b].ValA = flagbuffer;
                     } else {
                         REG[arg_b].ValB = flagbuffer;
@@ -292,11 +292,11 @@ namespace CpuEmulator
                 case 11:
                     // Number Comparasion
                     if (REG[arg_b].ValA > REG[arg_a].ValA){
-                        FlagReg = FlagReg|(uint)Flags.BGreater;
+                        FlagReg |= (uint)Flags.BGreater;
                     } else if (REG[arg_b].ValA < REG[arg_a].ValA){
-                        FlagReg = FlagReg|(uint)Flags.AGreater;
+                        FlagReg |= (uint)Flags.AGreater;
                     } else if (REG[arg_b].ValA == REG[arg_a].ValA){
-                        FlagReg = FlagReg|(uint)Flags.Equal;
+                        FlagReg |= (uint)Flags.Equal;
                     } else {
                         Console.WriteLine("Comparation Error");
                         Environment.Exit(1);
