@@ -1,7 +1,5 @@
 /bin
 /obj
-/.vscode
 /.git
-/.idea
-/.vs
-/CpuEmulator.sln
+/Properties
+/App.config
