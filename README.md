@@ -15,7 +15,7 @@
 | Used as Address  | Used as Address  | B                | Compare Reg[a], Reg[b]           |
 | Used as Address  | Used as Address  | C                | Conditional Move Reg[a], Reg[b]  |
 | Used as Address  | Used as Address  | D                | Mov Reg[a], Reg[b]               |
-| Used as Address  | Used as Address  | E                | Mov Reg[a], Ram[Reg[b]]          |
+| Used as Address  | Used as Address  | E                | Mov Reg[b], Ram[Reg[a]]          |
 | Used as Address  | Used as Address  | F                | Mov Ram[Reg[a]], Reg[b]          |
 | **Arg B**        | **Op Code**      | **Op Code**      |                                  |
 | Used as Address  | 1                | 0                | Mov N1, Reg[b]                   |
