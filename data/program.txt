@@ -1,24 +1,97 @@
-//Testowy program zapeÅ‚niajÄ…cy pamiÄ™Ä‡ RAM od adresu 0x0f0 do 0xfff wybranÄ… wartoÅ›ciÄ…
-010
-010
+//Mov 48, reg[1] ARRAY START
 110
-001
-d10
+030
+//Mov 15, reg[2] ARRAY SIZE (Licznik pêtli zewnêtrznej)
+210
+00F
+//Mov reg[1], reg[3]
+31D
+//Add reg[2], reg[3] LAST ARRAY ADDRESS
+321
+//Mov 6, reg[13] USTAWIENIE FLAG
+D10
+006
+// :: PÊTLA ZEWNÊTRZNA [008]
+// MNIEJSZA MAX MACIERZ
+340
+//Mov reg[1], reg[4] LICZNIK PÊTLI WEWNÊTRZNEJ
+41D
+// :: PÊTLA WEWNÊTRZNA [00A]
+//Mov ram[reg[4]], reg[5] POBRANIE PIERWSZEJ DANEJ
+54F
+// INKREMENTACJA LICZNIKA PÊTLI WEWNÊTRZNEJ
+430
+//Mov ram[reg[4]], reg[6] POBRANIE DRUGIEJ DANEJ
+64F
+// SPRAWDZANIE SWAPA
+// CZYSZCZENIE REJESTRU Z WARUNKAMI
+E10
+000
+// PORÓWNYWANIE WARTOŒCI REG[6][b] Z REG[5][A]
+65B
+//SKOCZ JE¯ELI TRZEBA
+//Cmov 22, reg[15]
+F20
+016
+//SWAP
+//Mov reg[5], ram[reg[4]]
+54E
+//Dec reg[4]
+440
+//Mov reg[6], ram[reg[4]]
+64E
+//Inc reg[4]
+430
+// :: SKIP SWAP [016]
+// CZYSZCZENIE REJESTRU Z WARUNKAMI
+E10
+000
+// PORÓWNYWANIE WARTOŒCI REG[3][b] Z REG[4][A]
+34B
+//SKOCZ JE¯ELI TRZEBA
+//Cmov 00A, reg[15]
+F20
+00A
+// CZYSZCZENIE REJESTRU Z WARUNKAMI
+E10
+000
+// PORÓWNYWANIE WARTOŒCI REG[3][b] Z REG[1][A]
+31B
+//SKOCZ JE¯ELI TRZEBA
+//Cmov 8, reg[15]
+F20
 008
-//WartoÅ›Ä‡ wpisywana do komÃ³rek pamiÄ™ci ram
-270
-02e
-011
+// END
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+000
+//dane
+160
+150
+140
+130
+120
+110
 100
-f10
-007
-//
-//010
-//010
-//d10
-//008
-//00e
-//030
-//100
-//f10
-//004
+090
+080
+070
+060
+050
+040
+030
+020
+010
