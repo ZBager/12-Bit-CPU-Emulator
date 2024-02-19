@@ -81,7 +81,7 @@ namespace CpuEmulator
 		//Displays flags stored in Register 14
 		public void PrintFlags()
 		{
-			Console.WriteLine(GetFlags((Flags)15));
+			Console.WriteLine(GetFlags(Flags.All));
 		}
 
 		// CPU flags. More flags can be added later.
@@ -108,83 +108,46 @@ namespace CpuEmulator
 		}
 		public void NextCommand()
 		{
-			uint flagbuffer = 0;
 			uint opcode = RAM[CounterReg].Val;
 			uint instruction = opcode & 0xf;
 			uint arg_a = (opcode >> 4) & 0xf;
 			uint arg_b = (opcode >> 8) & 0xf;
 			CounterReg++;
-			ExecuteCommand_L0(instruction, arg_a, arg_b, flagbuffer);
+			ExecuteCommand_L0(instruction, arg_a, arg_b);
 		}
 
-		private void ExecuteCommand_L0(uint instruction, uint arg_a, uint arg_b, uint flagbuffer)
+		private void ExecuteCommand_L0(uint instruction, uint arg_a, uint arg_b)
 		{
 			switch (instruction)
 			{
 				case 0:
-					ExecuteCommand_L1(arg_a, arg_b, flagbuffer);
+					ExecuteCommand_L1(arg_a, arg_b);
 					break;
 				case 1:
-					// Addition
-					flagbuffer = REG[arg_a].Val + REG[arg_b].Val;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_Addition(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 2:
-					// Subtract
-					flagbuffer = REG[arg_a].Val - REG[arg_b].Val;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_Subraction(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 3:
-					// Reversed Subtract
-					flagbuffer = REG[arg_b].Val - REG[arg_a].Val;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_ReversedSubraction(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 4:
-					// AND
-					REG[arg_b].Val = REG[arg_a].Val & REG[arg_b].Val;
+					ALU_AND(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 5:
-					// OR
-					REG[arg_b].Val = REG[arg_a].Val | REG[arg_b].Val;
+					ALU_OR(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 6:
-					// XOR
-					REG[arg_b].Val = REG[arg_a].Val ^ REG[arg_b].Val;
+					ALU_XOR(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 11:
-					// Number Comparasion
-					CMD_Compare(REG[arg_b].Val, REG[arg_a].Val);
+					ALU_Compare(REG[arg_b].Val, REG[arg_a].Val);
 					break;
 				case 12:
 					// Conditional Move Reg -> Reg
-					if (GetFlags((Flags)CheckFlagReg) != 0)
-					{
+					if (CPU_CheckCondition())
 						REG[arg_b].Val = REG[arg_a].Val;
-					}
 					break;
 				case 13:
 					// Move Reg -> Reg
@@ -205,12 +168,12 @@ namespace CpuEmulator
 			}
 		}
 
-		private void ExecuteCommand_L1(uint arg_a, uint arg_b, uint flagbuffer)
+		private void ExecuteCommand_L1(uint arg_a, uint arg_b)
 		{
 			switch (arg_a)
 			{
 				case 0:
-					ExecuteCommand_L2(arg_b, flagbuffer);
+					ExecuteCommand_L2(arg_b);
 					break;
 				case 1:
 					// Move N1, Reg[b]
@@ -220,36 +183,14 @@ namespace CpuEmulator
 				case 2:
 					// Conditional Move N1, Reg[b]
 					CounterReg++;
-					if (GetFlags((Flags)CheckFlagReg) != 0)
-					{
+					if (CPU_CheckCondition())
 						REG[arg_b].Val = RAM[(CounterReg - 1)].Val;
-					}
 					break;
 				case 3:
-					// Increment Reg[b]
-					flagbuffer = REG[arg_b].Val + 1;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_INC(ref REG[arg_b]);
 					break;
 				case 4:
-					// Decrement Reg[b]
-					flagbuffer = REG[arg_b].Val - 1;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_DEC(ref REG[arg_b]);
 					break;
 				case 5:
 					// Not Reg[b] (done as xor with max Value because you cannot negate uint Values)
@@ -257,11 +198,8 @@ namespace CpuEmulator
 					break;
 				case 6:
 					// Right Shift
-					flagbuffer = REG[arg_b].Val & 0x1;
-					if (flagbuffer == 1)
-					{
+					if ((REG[arg_b].Val & 0x1) == 1)
 						Set_Flag(Flags.Overflow);
-					}
 					REG[arg_b].Val = REG[arg_b].Val >> 1;
 					break;
 				case 7:
@@ -281,66 +219,32 @@ namespace CpuEmulator
 					}
 					break;
 				case 8:
-					// Addition N1 + Reg
 					CounterReg++;
-					flagbuffer = RAM[(CounterReg - 1)].Val + REG[arg_b].Val;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_Addition(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 9:
-					// Subtract N1 - Reg
 					CounterReg++;
-					flagbuffer = RAM[(CounterReg - 1)].Val - REG[arg_b].Val;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_Subraction(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 10:
-					// Reversed Subtract Reg - N1
 					CounterReg++;
-					flagbuffer = REG[arg_b].Val - RAM[(CounterReg - 1)].Val;
-					if (flagbuffer > 4095)
-					{
-						Set_Flag(Flags.Overflow);
-						REG[arg_b].Val = flagbuffer;
-					}
-					else
-					{
-						REG[arg_b].Val = flagbuffer;
-					}
+					ALU_ReversedSubraction(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 11:
-					// AND N1 & Reg
 					CounterReg++;
-					REG[arg_b].Val = RAM[(CounterReg - 1)].Val & REG[arg_b].Val;
+					ALU_AND(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 12:
-					// OR N1 | Reg
 					CounterReg++;
-					REG[arg_b].Val = RAM[(CounterReg - 1)].Val | REG[arg_b].Val;
+					ALU_OR(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 13:
-					// XOR N1 ^ Reg
 					CounterReg++;
-					REG[arg_b].Val = RAM[(CounterReg - 1)].Val ^ REG[arg_b].Val;
+					ALU_XOR(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 14:
-					// Number Comparasion N1 ? Reg
 					CounterReg++;
-					CMD_Compare(REG[arg_b].Val, RAM[(CounterReg - 1)].Val);
+					ALU_Compare(REG[arg_b].Val, RAM[(CounterReg - 1)].Val);
 					break;
 				default:
 					Console.WriteLine("Program Error (Invalid Command)");
@@ -349,7 +253,7 @@ namespace CpuEmulator
 			}
 		}
 
-		private void ExecuteCommand_L2(uint arg_b, uint flagbuffer)
+		private void ExecuteCommand_L2(uint arg_b)
 		{
 			switch (arg_b)
 			{
@@ -359,7 +263,7 @@ namespace CpuEmulator
 					break;
 				case 1:
 					// Conditional Stop
-					if (GetFlags((Flags)CheckFlagReg) != 0)
+					if (CPU_CheckCondition())
 						_isCpuRunning = false;
 					break;
 				default:
@@ -368,8 +272,20 @@ namespace CpuEmulator
 					break;
 			}
 		}
+		private bool CPU_CheckCondition()
+		{
+			if (GetFlags((Flags)CheckFlagReg) != 0)
+				return true;
+			return false;
+		}
 
-		private void CMD_Compare(uint B, uint A)
+		private void ALU_CheckOverflow(uint value)
+		{
+			if (value > 4095)
+				Set_Flag(Flags.Overflow);
+		}
+
+		private void ALU_Compare(uint B, uint A)
 		{
 			if (B > A)
 			{
@@ -388,6 +304,51 @@ namespace CpuEmulator
 				Console.WriteLine("Comparation Error");
 				Environment.Exit(1);
 			}
+		}
+
+		private void ALU_Addition(ref Data12Bit B, Data12Bit A)
+		{
+			ALU_CheckOverflow(A.Val + B.Val);
+			B.Val = A.Val + B.Val;
+		}
+
+		private void ALU_Subraction(ref Data12Bit B, Data12Bit A)
+		{
+			ALU_CheckOverflow(A.Val - B.Val);
+			B.Val = A.Val - B.Val;
+		}
+
+		private void ALU_ReversedSubraction(ref Data12Bit B, Data12Bit A)
+		{
+			ALU_CheckOverflow(B.Val - A.Val);
+			B.Val = B.Val - A.Val;
+		}
+
+		private void ALU_AND(ref Data12Bit B, Data12Bit A)
+		{
+			B.Val = B.Val & A.Val;
+		}
+
+		private void ALU_OR(ref Data12Bit B, Data12Bit A)
+		{
+			B.Val = B.Val | A.Val;
+		}
+
+		private void ALU_XOR(ref Data12Bit B, Data12Bit A)
+		{
+			B.Val = B.Val ^ A.Val;
+		}
+
+		private void ALU_INC(ref Data12Bit B)
+		{
+			ALU_CheckOverflow(B.Val + 1);
+			B.Val++;
+		}
+
+		private void ALU_DEC(ref Data12Bit B)
+		{
+			ALU_CheckOverflow(B.Val - 1);
+			B.Val--;
 		}
 
 		private void Set_Flag(Flags flag)
