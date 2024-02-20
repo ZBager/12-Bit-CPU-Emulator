@@ -83,7 +83,7 @@ namespace CpuEmulator
 		void Next_Tick(object sender, RoutedEventArgs e)
 		{
 			emulator.NextCommand();
-			Thread.Sleep(1);
+			Thread.Sleep(20);
 			UpdateDataGrid();
 		}
 		DispatcherTimer myTimer = new DispatcherTimer();

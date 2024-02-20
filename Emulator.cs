@@ -145,21 +145,17 @@ namespace CpuEmulator
 					ALU_Compare(REG[arg_b].Val, REG[arg_a].Val);
 					break;
 				case 12:
-					// Conditional Move Reg -> Reg
 					if (CPU_CheckCondition())
-						REG[arg_b].Val = REG[arg_a].Val;
+						CPU_Move(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 13:
-					// Move Reg -> Reg
-					REG[arg_b].Val = REG[arg_a].Val;
+					CPU_Move(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 14:
-					// Move Reg -> RAM
-					RAM[REG[arg_a].Val].Val = REG[arg_b].Val;
+					CPU_Move(ref RAM[REG[arg_a].Val], REG[arg_b]);
 					break;
 				case 15:
-					// Move RAM -> Reg
-					REG[arg_b].Val = RAM[REG[arg_a].Val].Val;
+					CPU_Move(ref REG[arg_b], RAM[REG[arg_a].Val]);
 					break;
 				default:
 					Console.WriteLine("Program Error (Invalid Command)");
@@ -176,15 +172,13 @@ namespace CpuEmulator
 					ExecuteCommand_L2(arg_b);
 					break;
 				case 1:
-					// Move N1, Reg[b]
 					CounterReg++;
-					REG[arg_b].Val = RAM[(CounterReg - 1)].Val;
+					CPU_Move(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 2:
-					// Conditional Move N1, Reg[b]
 					CounterReg++;
-					if (CPU_CheckCondition())
-						REG[arg_b].Val = RAM[(CounterReg - 1)].Val;
+                    if (CPU_CheckCondition())
+						CPU_Move(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 3:
 					ALU_INC(ref REG[arg_b]);
@@ -193,14 +187,10 @@ namespace CpuEmulator
 					ALU_DEC(ref REG[arg_b]);
 					break;
 				case 5:
-					// Not Reg[b] (done as xor with max Value because you cannot negate uint Values)
-					REG[arg_b].Val = REG[arg_b].Val ^ 0xfff;
+					ALU_NOT(ref REG[arg_b]);
 					break;
 				case 6:
-					// Right Shift
-					if ((REG[arg_b].Val & 0x1) == 1)
-						Set_Flag(Flags.Overflow);
-					REG[arg_b].Val = REG[arg_b].Val >> 1;
+					ALU_RSH(ref REG[arg_b]);
 					break;
 				case 7:
 					// User Input Interrupt
@@ -258,13 +248,11 @@ namespace CpuEmulator
 			switch (arg_b)
 			{
 				case 0:
-					// Stop
-					_isCpuRunning = false;
+					CPU_Stop();
 					break;
 				case 1:
-					// Conditional Stop
 					if (CPU_CheckCondition())
-						_isCpuRunning = false;
+						CPU_Stop();
 					break;
 				default:
 					Console.WriteLine("Program Error (Invalid Command)");
@@ -277,6 +265,16 @@ namespace CpuEmulator
 			if (GetFlags((Flags)CheckFlagReg) != 0)
 				return true;
 			return false;
+		}
+
+		private void CPU_Stop()
+		{
+			_isCpuRunning = false;
+		}
+
+		private void CPU_Move(ref Data12Bit B, Data12Bit A)
+		{
+			B.Val = A.Val;
 		}
 
 		private void ALU_CheckOverflow(uint value)
@@ -349,6 +347,18 @@ namespace CpuEmulator
 		{
 			ALU_CheckOverflow(B.Val - 1);
 			B.Val--;
+		}
+
+		private void ALU_RSH(ref Data12Bit B)
+		{
+			if ((B.Val & 0x1) == 1)
+				Set_Flag(Flags.Overflow);
+			B.Val = B.Val >> 1;
+		}
+
+		private void ALU_NOT(ref Data12Bit B)
+		{
+			B.Val = B.Val ^ 0xfff;
 		}
 
 		private void Set_Flag(Flags flag)
