@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Threading;
 using System.Windows.Threading;
-using System.Threading.Tasks;
 
 namespace CpuEmulator
 {
@@ -24,8 +23,8 @@ namespace CpuEmulator
 				_address = address;
 			}
 			public string Address { get => _address.Val.ToString(); }
-			public string Hex { get => _value.Val.ToString("X3"); }
-			public string Binary { get => Convert.ToString(_value.Val, 2).PadLeft(12, '0'); }
+			public string Hex { get => "0x" + _value.Val.ToString("X3"); }
+			public string Binary { get => "0b" + Convert.ToString(_value.Val, 2).PadLeft(12, '0'); }
 		}
 		
 		public void EmulatorUpdate()
@@ -33,11 +32,11 @@ namespace CpuEmulator
 			myTimer.Start();
 			while (emulator.IsRunning())
 			{
-				Thread.Sleep(10);
+				Thread.Sleep(1);
 				emulator.NextCommand();
 			}
 			Thread.Sleep(50);
-			myTimer.Stop();
+            myTimer.Stop();
 		}
 
 		public MainWindow()
@@ -83,9 +82,8 @@ namespace CpuEmulator
 		void Next_Tick(object sender, RoutedEventArgs e)
 		{
 			emulator.NextCommand();
-			Thread.Sleep(20);
 			UpdateDataGrid();
-		}
+        }
 		DispatcherTimer myTimer = new DispatcherTimer();
 		private void UpdateLabel(object sender, EventArgs e)
 		{

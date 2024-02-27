@@ -11,22 +11,22 @@
 				<SolidColorBrush Color="LightBlue"/>
 			</Grid.Background>
 			<Grid.RowDefinitions>
-				<RowDefinition Height="50"/>
-				<RowDefinition/>
+			<RowDefinition Height="50"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition/>
 			</Grid.RowDefinitions>
 			<!-- Top Bar -->
 			<Grid Grid.ColumnSpan="2">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="55"/>
-						<ColumnDefinition Width="50"/>
-						<ColumnDefinition Width="50"/>
-						<ColumnDefinition Width="50"/>
-						<ColumnDefinition Width="50"/>
-						<ColumnDefinition Width="1*"/>
-						<ColumnDefinition Width="50"/>
-						<ColumnDefinition Width="50"/>
-						<ColumnDefinition Width="55"/>
-					</Grid.ColumnDefinitions>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="55"/>
+					<ColumnDefinition Width="50"/>
+					<ColumnDefinition Width="50"/>
+					<ColumnDefinition Width="50"/>
+					<ColumnDefinition Width="1*"/>
+					<ColumnDefinition Width="50"/>
+					<ColumnDefinition Width="50"/>
+					<ColumnDefinition Width="55"/>
+				</Grid.ColumnDefinitions>
 					<Button Grid.Column="0" Margin="10,5,5,5" Click="Load_Program">
 						<TextBlock Text="Load&#x0a;Program" TextAlignment="Center" FontSize="9"/>
 					</Button>
@@ -39,18 +39,36 @@
 					<Button Grid.Column="3" Margin="5,5,5,5" Click="Stop_CPU">
 						<TextBlock Text="Stop" TextAlignment="Center" FontSize="9"/>
 					</Button>
-					<Button Grid.Column="8" Margin="5,5,10,5" IsEnabled="False">
+					<Button Grid.Column="5" Margin="5,5,5,5" IsEnabled="False">
 						<TextBlock Text="Place&#x0a;Holder" TextAlignment="Center" FontSize="9"/>
 					</Button>
-					<Button Grid.Column="7" Margin="5,5,5,5" IsEnabled="False">
+					<Button Grid.Column="7" Margin="5,5,10,5" IsEnabled="False">
 						<TextBlock Text="Place&#x0a;Holder" TextAlignment="Center" FontSize="9"/>
 					</Button>
 					<Button Grid.Column="6" Margin="5,5,5,5" IsEnabled="False">
 						<TextBlock Text="Place&#x0a;Holder" TextAlignment="Center" FontSize="9"/>
 					</Button>
-				</Grid>
-			<!-- Central Part -->
-			<Grid Grid.Row="1" Grid.ColumnSpan="2">
+			</Grid>
+			<!-- Main Part -->
+			<Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Registers" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Grid.Column="0"/>
+                    <TextBlock Text="Ram" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Grid.Column="1"/>
+                </Grid>
+            </Grid>
+            <TextBlock Text="Programmer" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Grid.Column="1"/>
+        </Grid>
+			<!-- Main Part -->
+			<Grid Grid.Row="2" Grid.ColumnSpan="2">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="1*"/>
 					<ColumnDefinition Width="1*"/>
@@ -62,46 +80,44 @@
 						<RowDefinition/>
 						<RowDefinition/>
 					</Grid.RowDefinitions>
-				<Grid Grid.Row="0">
-					<Grid.RowDefinitions>
-						<RowDefinition/>
-						<RowDefinition Height="30"/>
-					</Grid.RowDefinitions>
-					<DataGrid Margin="10,10,10,10" x:Name="programerData" Opacity="0.70">
-						<DataGrid.Columns>
-							<DataGridTextColumn Header="Address" Width="1*"/>
-							<DataGridTextColumn Header="Argument 1" Width="1*"/>
-							<DataGridTextColumn Header="Argument 2" Width="1*"/>
-							<DataGridTextColumn Header="Argument 3" Width="1*"/>
-						</DataGrid.Columns>
-					</DataGrid>
-					<Grid Grid.Row="1">
-						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="1*"/>
-							<ColumnDefinition Width="1*"/>
-							<ColumnDefinition Width="1*"/>
-							<ColumnDefinition Width="3*"/>
-							<ColumnDefinition Width="3*"/>
-							<ColumnDefinition Width="3*"/>
-						</Grid.ColumnDefinitions>
-						<Button Grid.Column="0" Margin="10,5,0,5">
-							<TextBlock Text="Up" TextAlignment="Center" FontSize="9"/>
-						</Button>
-						<Button Grid.Column="1" Margin="5,5,0,5">
-							<TextBlock Text="Down" TextAlignment="Center" FontSize="9"/>
-						</Button>
-						<Button Grid.Column="2" Margin="5,5,0,5">
-							<TextBlock Text="Write" TextAlignment="Center" FontSize="9"/>
-						</Button>
-						<ListBox Margin="10,5,10,5" Grid.Column="3"/>
-						<ListBox Margin="10,5,10,5" Grid.Column="4"/>
-						<ListBox Margin="10,5,10,5" Grid.Column="5"/>
-					</Grid>
-				</Grid>
-				<Grid Grid.Row="2">
-					<TextBlock Text="Made by Rafał Zając" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="5" FontSize="12"/>
-				</Grid>
-			<!-- Left Half -->
+                <Grid Grid.Row="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="30"/>
+                    </Grid.RowDefinitions>
+                    <DataGrid Margin="10,10,10,10" x:Name="programerData" Opacity="0.70">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Address" Width="1*"/>
+                            <DataGridTextColumn Header="Argument 1" Width="1*"/>
+                            <DataGridTextColumn Header="Argument 2" Width="1*"/>
+                            <DataGridTextColumn Header="Argument 3" Width="1*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="3*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Margin="10,5,0,5">
+                            <TextBlock Text="Up" TextAlignment="Center" FontSize="9"/>
+                        </Button>
+                        <Button Grid.Column="1" Margin="5,5,0,5">
+                            <TextBlock Text="Down" TextAlignment="Center" FontSize="9"/>
+                        </Button>
+                        <Button Grid.Column="2" Margin="5,5,0,5">
+                            <TextBlock Text="Write" TextAlignment="Center" FontSize="9"/>
+                        </Button>
+                        <ListBox Margin="10,5,10,5" Grid.Column="3"/>
+                        <ListBox Margin="10,5,10,5" Grid.Column="4"/>
+                        <ListBox Margin="10,5,10,5" Grid.Column="5"/>
+                    </Grid>
+                </Grid>
+                <TextBlock Text="Made by Rafał Zając" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="5" FontSize="12" Grid.Row="2"/>
+                <!-- Left Half -->
 			</Grid>
 				<DataGrid Margin="10,10,10,10" x:Name="regData" ItemsSource="{Binding}" AutoGenerateColumns="False" IsReadOnly="True" Opacity="0.70" CanUserSortColumns="False" AlternatingRowBackground="LightGray">
 					<DataGrid.Columns>

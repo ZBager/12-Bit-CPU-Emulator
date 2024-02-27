@@ -9,7 +9,6 @@ namespace CpuEmulator
 		//RAM & REGISTERS data structure
 		public Data12Bit[] RAM = new Data12Bit[4096];
 		public Data12Bit[] REG = new Data12Bit[16];
-
 		//Constant Registers
 		private uint CounterReg
 		{
@@ -50,7 +49,6 @@ namespace CpuEmulator
 				}
 			}
 		}
-
 		//Displays Values stored in RAM
 		public void PrintRam()
 		{
@@ -65,7 +63,6 @@ namespace CpuEmulator
 				Console.WriteLine();
 			}
 		}
-
 		//Displays Values stored in Registers
 		public void PrintReg()
 		{
@@ -77,13 +74,11 @@ namespace CpuEmulator
 			}
 			Console.WriteLine();
 		}
-
 		//Displays flags stored in Register 14
 		public void PrintFlags()
 		{
 			Console.WriteLine(GetFlags(Flags.All));
 		}
-
 		// CPU flags. More flags can be added later.
 		[Flags]
 		public enum Flags
@@ -95,12 +90,10 @@ namespace CpuEmulator
 			Overflow    = 0b_0000_0000_1000,
 			All         = 0b_1111_1111_1111
 		};
-
 		private Flags GetFlags(Flags check)
 		{
 			return check & (Flags)FlagReg;
 		}
-
 		private bool _isCpuRunning = true;
 		public bool IsRunning()
 		{
@@ -115,6 +108,7 @@ namespace CpuEmulator
 			CounterReg++;
 			ExecuteCommand_L0(instruction, arg_a, arg_b);
 		}
+
 
 		private void ExecuteCommand_L0(uint instruction, uint arg_a, uint arg_b)
 		{
@@ -142,7 +136,7 @@ namespace CpuEmulator
 					ALU_XOR(ref REG[arg_b], REG[arg_a]);
 					break;
 				case 11:
-					ALU_Compare(REG[arg_b].Val, REG[arg_a].Val);
+					ALU_Compare(REG[arg_b], REG[arg_a]);
 					break;
 				case 12:
 					if (CPU_CheckCondition())
@@ -163,7 +157,6 @@ namespace CpuEmulator
 					break;
 			}
 		}
-
 		private void ExecuteCommand_L1(uint arg_a, uint arg_b)
 		{
 			switch (arg_a)
@@ -177,7 +170,7 @@ namespace CpuEmulator
 					break;
 				case 2:
 					CounterReg++;
-                    if (CPU_CheckCondition())
+					if (CPU_CheckCondition())
 						CPU_Move(ref REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				case 3:
@@ -234,7 +227,7 @@ namespace CpuEmulator
 					break;
 				case 14:
 					CounterReg++;
-					ALU_Compare(REG[arg_b].Val, RAM[(CounterReg - 1)].Val);
+					ALU_Compare(REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				default:
 					Console.WriteLine("Program Error (Invalid Command)");
@@ -242,7 +235,6 @@ namespace CpuEmulator
 					break;
 			}
 		}
-
 		private void ExecuteCommand_L2(uint arg_b)
 		{
 			switch (arg_b)
@@ -260,40 +252,38 @@ namespace CpuEmulator
 					break;
 			}
 		}
+
+
 		private bool CPU_CheckCondition()
 		{
 			if (GetFlags((Flags)CheckFlagReg) != 0)
 				return true;
 			return false;
 		}
-
 		private void CPU_Stop()
 		{
 			_isCpuRunning = false;
 		}
-
 		private void CPU_Move(ref Data12Bit B, Data12Bit A)
 		{
 			B.Val = A.Val;
 		}
-
 		private void ALU_CheckOverflow(uint value)
 		{
 			if (value > 4095)
 				Set_Flag(Flags.Overflow);
 		}
-
-		private void ALU_Compare(uint B, uint A)
+		private void ALU_Compare(Data12Bit B, Data12Bit A)
 		{
-			if (B > A)
+			if (B.Val > A.Val)
 			{
 				Set_Flag(Flags.BGreater);
 			}
-			else if (B < A)
+			else if (B.Val < A.Val)
 			{
 				Set_Flag(Flags.AGreater);
 			}
-			else if (B == A)
+			else if (B.Val == A.Val)
 			{
 				Set_Flag(Flags.Equal);
 			}
@@ -303,64 +293,53 @@ namespace CpuEmulator
 				Environment.Exit(1);
 			}
 		}
-
 		private void ALU_Addition(ref Data12Bit B, Data12Bit A)
 		{
 			ALU_CheckOverflow(A.Val + B.Val);
 			B.Val = A.Val + B.Val;
 		}
-
 		private void ALU_Subraction(ref Data12Bit B, Data12Bit A)
 		{
 			ALU_CheckOverflow(A.Val - B.Val);
 			B.Val = A.Val - B.Val;
 		}
-
 		private void ALU_ReversedSubraction(ref Data12Bit B, Data12Bit A)
 		{
 			ALU_CheckOverflow(B.Val - A.Val);
 			B.Val = B.Val - A.Val;
 		}
-
 		private void ALU_AND(ref Data12Bit B, Data12Bit A)
 		{
 			B.Val = B.Val & A.Val;
 		}
-
 		private void ALU_OR(ref Data12Bit B, Data12Bit A)
 		{
 			B.Val = B.Val | A.Val;
 		}
-
 		private void ALU_XOR(ref Data12Bit B, Data12Bit A)
 		{
 			B.Val = B.Val ^ A.Val;
 		}
-
 		private void ALU_INC(ref Data12Bit B)
 		{
 			ALU_CheckOverflow(B.Val + 1);
 			B.Val++;
 		}
-
 		private void ALU_DEC(ref Data12Bit B)
 		{
 			ALU_CheckOverflow(B.Val - 1);
 			B.Val--;
 		}
-
 		private void ALU_RSH(ref Data12Bit B)
 		{
 			if ((B.Val & 0x1) == 1)
 				Set_Flag(Flags.Overflow);
 			B.Val = B.Val >> 1;
 		}
-
 		private void ALU_NOT(ref Data12Bit B)
 		{
 			B.Val = B.Val ^ 0xfff;
 		}
-
 		private void Set_Flag(Flags flag)
 		{
 			FlagReg |= (uint)flag;
