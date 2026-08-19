@@ -153,6 +153,14 @@ jobs:
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME}"
+
+          # A hand-written description for this tag wins if one is committed;
+          # otherwise fall back to the generic template below.
+          if [ -f "docs/releases/${version}.md" ]; then
+            echo "Using docs/releases/${version}.md"
+            cp "docs/releases/${version}.md" notes.md
+          else
+            echo "No docs/releases/${version}.md -- using the generic template"
           cat > notes.md <<'NOTES'
           Cross-platform builds of the 12-bit CPU emulator, produced by CI from this tag.
 
@@ -181,7 +189,20 @@ jobs:
           sha256sum -c SHA256SUMS.txt --ignore-missing
           ```
           NOTES
+          fi
+
+          # A release title may contain spaces and punctuation a git tag cannot,
+          # so an optional first-line "# Title" in the notes file becomes the
+          # release title and is stripped from the body.
+          title="${version}"
+          if head -1 notes.md | grep -q '^# '; then
+            title="$(head -1 notes.md | sed 's/^# //')"
+            tail -n +2 notes.md | sed '/./,$!d' > notes.body.md
+            mv notes.body.md notes.md
+          fi
+          echo "Release title: ${title}"
+
           gh release create "${version}" dist/* \
-            --title "${version}" \
+            --title "${title}" \
             --notes-file notes.md \
             --verify-tag
