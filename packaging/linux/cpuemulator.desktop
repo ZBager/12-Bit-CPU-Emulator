@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=CPU Emulator
+Comment=Emulator for a custom 12-bit CPU
+Exec=CpuEmulator
+Icon=cpuemulator
+Categories=Development;Education;
+Terminal=false

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Reflection;
 
 namespace CpuEmulator
 {
@@ -9,6 +7,20 @@ namespace CpuEmulator
 		//RAM & REGISTERS data structure
 		public Data12Bit[] RAM = new Data12Bit[4096];
 		public Data12Bit[] REG = new Data12Bit[16];
+
+		private readonly IInputSource? _input;
+
+		//Address of the instruction currently being decoded, for error reporting
+		private uint _currentAddress;
+
+		/// <param name="input">
+		/// Supplies values to the user-input instruction (L1 opcode 7). May be left null
+		/// if the program being run never uses that instruction; it throws if one does.
+		/// </param>
+		public Emulator(IInputSource? input = null)
+		{
+			_input = input;
+		}
 		//Constant Registers
 		private uint CounterReg
 		{
@@ -25,59 +37,69 @@ namespace CpuEmulator
 			get => REG[13].Val;
 			set => REG[13].Val = value;
 		}
-		//Try to find a file and if it exists load it to ram
-		public void LoadProgram(string path)
+		/// <summary>
+		/// Writes a parsed program into RAM starting at address 0. Use
+		/// <see cref="ProgramLoader"/> to turn a file or listing into words.
+		/// Does not clear the rest of RAM first.
+		/// </summary>
+		/// <exception cref="ArgumentException">The program is larger than RAM.</exception>
+		public void LoadProgram(IReadOnlyList<uint> program)
 		{
-			string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path);
+			ArgumentNullException.ThrowIfNull(program);
 
-			if (File.Exists(program_path))
-				LoadProgramToRam(File.ReadAllLines(program_path));
-			else
-				Console.WriteLine("File does not exist");
+			if (program.Count > RAM.Length)
+				throw new ArgumentException(
+					$"Program is {program.Count} words but RAM holds {RAM.Length}.", nameof(program));
+
+			for (int i = 0; i < program.Count; i++)
+				RAM[i].Val = program[i];
 		}
-		//Load selected file to ram
-		private void LoadProgramToRam(string[] program)
+
+		/// <summary>
+		/// Clears RAM, clears the registers, and puts the CPU back into the running
+		/// state so it can be started again after a program has halted.
+		/// </summary>
+		public void Reset()
 		{
-			int ram_pointer = 0;
-			foreach (string line in program)
-			{
-				if (!line.StartsWith("//"))
-				{
-					uint Value = UInt32.Parse(line, System.Globalization.NumberStyles.HexNumber);
-					RAM[ram_pointer].Val = Value;
-					ram_pointer++;
-				}
-			}
+			Array.Clear(RAM);
+			Array.Clear(REG);
+			_isCpuRunning = true;
 		}
-		//Displays Values stored in RAM
-		public void PrintRam()
+		/// <summary>Renders RAM as 16 words per line. Returns the text rather than writing to a console.</summary>
+		public string DumpRam()
 		{
-			Console.WriteLine("RAM Values:");
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
+			sb.AppendLine("RAM Values:");
 			for (int i = 0; i < RAM.Length; i += 16)
 			{
-				Console.Write("0x" + i.ToString("X3") + ": ");
+				sb.Append("0x" + i.ToString("X3") + ": ");
 				for (int j = 0; j < 16; j++)
 				{
-					Console.Write(RAM[i + j].Val.ToString("X3") + " ");
+					sb.Append(RAM[i + j].Val.ToString("X3") + " ");
 				}
-				Console.WriteLine();
+				sb.AppendLine();
 			}
+			return sb.ToString();
 		}
-		//Displays Values stored in Registers
-		public void PrintReg()
+
+		/// <summary>Renders the 16 registers on one line.</summary>
+		public string DumpRegisters()
 		{
-			Console.WriteLine("Register Values:");
-			Console.Write("0x0:   ");
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
+			sb.AppendLine("Register Values:");
+			sb.Append("0x0:   ");
 			for (int i = 0; i < 16; i++)
 			{
-				Console.Write(REG[i].Val.ToString("X3") + " ");
+				sb.Append(REG[i].Val.ToString("X3") + " ");
 			}
-			Console.WriteLine();
+			sb.AppendLine();
+			return sb.ToString();
 		}
-		//Displays flags stored in Register 14
-		public void PrintFlags()
+
+		/// <summary>Renders the flags currently set in register 14.</summary>
+		public string DumpFlags()
 		{
-			Console.WriteLine(GetFlags(Flags.All));
+			return GetFlags(Flags.All).ToString();
 		}
 		// CPU flags. More flags can be added later.
 		[Flags]
@@ -99,23 +121,34 @@ namespace CpuEmulator
 		{
 			return _isCpuRunning;
 		}
-		public void NextCommand()
+		/// <summary>
+		/// Fetches, decodes and executes one instruction.
+		/// </summary>
+		/// <param name="cancellationToken">
+		/// Observed only while the CPU is blocked on the user-input instruction. A host
+		/// that wants to stop a running CPU otherwise simply stops calling this method.
+		/// </param>
+		/// <exception cref="InvalidOpcodeException">The word at the program counter does not decode.</exception>
+		public void NextCommand(CancellationToken cancellationToken = default)
 		{
+			_currentAddress = CounterReg;
 			uint opcode = RAM[CounterReg].Val;
 			uint instruction = opcode & 0xf;
 			uint arg_a = (opcode >> 4) & 0xf;
 			uint arg_b = (opcode >> 8) & 0xf;
 			CounterReg++;
-			ExecuteCommand_L0(instruction, arg_a, arg_b);
+			ExecuteCommand_L0(instruction, arg_a, arg_b, cancellationToken);
 		}
 
+		private uint CurrentWord => RAM[_currentAddress].Val;
 
-		private void ExecuteCommand_L0(uint instruction, uint arg_a, uint arg_b)
+
+		private void ExecuteCommand_L0(uint instruction, uint arg_a, uint arg_b, CancellationToken cancellationToken)
 		{
 			switch (instruction)
 			{
 				case 0:
-					ExecuteCommand_L1(arg_a, arg_b);
+					ExecuteCommand_L1(arg_a, arg_b, cancellationToken);
 					break;
 				case 1:
 					ALU_Addition(ref REG[arg_b], REG[arg_a]);
@@ -152,12 +185,10 @@ namespace CpuEmulator
 					CPU_Move(ref REG[arg_b], RAM[REG[arg_a].Val]);
 					break;
 				default:
-					Console.WriteLine("Program Error (Invalid Command)");
-					Environment.Exit(1);
-					break;
+					throw new InvalidOpcodeException(0, _currentAddress, CurrentWord);
 			}
 		}
-		private void ExecuteCommand_L1(uint arg_a, uint arg_b)
+		private void ExecuteCommand_L1(uint arg_a, uint arg_b, CancellationToken cancellationToken)
 		{
 			switch (arg_a)
 			{
@@ -186,20 +217,13 @@ namespace CpuEmulator
 					ALU_RSH(ref REG[arg_b]);
 					break;
 				case 7:
-					// User Input Interrupt
-					while (true)
-					{
-						try
-						{
-							Console.WriteLine("Please Input Data (HEX) for the CPU: ");
-							REG[arg_b].Val = UInt32.Parse(Console.ReadLine() ?? throw new Exception(), System.Globalization.NumberStyles.HexNumber);
-							break;
-						}
-						catch (Exception)
-						{
-							Console.WriteLine("Invalid Value");
-						}
-					}
+					// User Input Interrupt. Prompting, validation and retry are the host's
+					// job; the CPU just blocks until a usable value comes back.
+					if (_input is null)
+						throw new InvalidOperationException(
+							$"The program executed the user-input instruction at address 0x{_currentAddress:X3}, " +
+							$"but this {nameof(Emulator)} was constructed without an {nameof(IInputSource)}.");
+					REG[arg_b].Val = _input.ReadValue(cancellationToken);
 					break;
 				case 8:
 					CounterReg++;
@@ -230,9 +254,7 @@ namespace CpuEmulator
 					ALU_Compare(REG[arg_b], RAM[(CounterReg - 1)]);
 					break;
 				default:
-					Console.WriteLine("Program Error (Invalid Command)");
-					Environment.Exit(2);
-					break;
+					throw new InvalidOpcodeException(1, _currentAddress, CurrentWord);
 			}
 		}
 		private void ExecuteCommand_L2(uint arg_b)
@@ -247,9 +269,7 @@ namespace CpuEmulator
 						CPU_Stop();
 					break;
 				default:
-					Console.WriteLine("Program Error (Invalid Command)");
-					System.Environment.Exit(3);
-					break;
+					throw new InvalidOpcodeException(2, _currentAddress, CurrentWord);
 			}
 		}
 
@@ -283,14 +303,10 @@ namespace CpuEmulator
 			{
 				Set_Flag(Flags.AGreater);
 			}
-			else if (B.Val == A.Val)
-			{
-				Set_Flag(Flags.Equal);
-			}
 			else
 			{
-				Console.WriteLine("Comparation Error");
-				Environment.Exit(1);
+				//B.Val == A.Val is all that remains
+				Set_Flag(Flags.Equal);
 			}
 		}
 		private void ALU_Addition(ref Data12Bit B, Data12Bit A)
