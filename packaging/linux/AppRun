@@ -1,0 +1,6 @@
+#!/bin/sh
+# AppImage entry point. Resolves the real location of this script so the app
+# can be launched through a symlink, then hands over every argument -- which
+# is how a program listing can be passed straight to the emulator.
+HERE="$(dirname "$(readlink -f "${0}")")"
+exec "${HERE}/usr/bin/CpuEmulator" "$@"

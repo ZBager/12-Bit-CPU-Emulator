@@ -9,9 +9,10 @@ RAM/register contents live while a program runs. `README.md` holds the authorita
 instruction-set table; see "README vs. implementation" below for known drift.
 
 **This repo is mid-migration** from WPF on .NET Framework 4.7.2 to Avalonia 12 on .NET 10.
-Phases 1–4 are done. The emulator core lives in `src/CpuEmulator.Core`, the Avalonia 12 UI in
-`src/CpuEmulator.App`, and 57 tests in `tests/CpuEmulator.Tests`. Everything builds and runs on
-Linux and Windows from one codebase. Phase 5 (data-file encoding, CI, README) is what remains. The old WPF sources are recoverable
+**The migration is complete.** The emulator core lives in `src/CpuEmulator.Core`, the Avalonia 12
+UI in `src/CpuEmulator.App`, and 57 tests in `tests/CpuEmulator.Tests`. One codebase builds and
+runs on Linux, macOS and Windows. The only deferred item is the program editor described under
+"The Avalonia UI" — a feature that never existed, not migration debt. The old WPF sources are recoverable
 from git history if the port needs them:
 
 ```
@@ -38,10 +39,8 @@ it gets driven when verifying a change by hand.
 `src/CpuEmulator.Core` is a class library with no UI dependencies; `src/CpuEmulator.App` is the
 Avalonia front end and the only project with an entry point.
 
-There is no linter. `.github/workflows/dotnet-desktop.yml` is unmodified GitHub boilerplate — its
-`Solution_Name`/`Test_Project_Path`/WAP-packaging env vars are still placeholder strings, so the
-workflow does not build this project. It gets replaced in Phase 5; don't treat it as a signal of
-how the project is built.
+There is no linter. `.github/workflows/build.yml` builds and tests on Linux, macOS and Windows,
+then packages all three.
 
 ## Architecture
 
@@ -151,6 +150,32 @@ every bound control needs an `x:DataType` or the build fails with `AVLN2100`; an
 The `programerData` grid and its Up/Down/Write buttons are still the program editor that was never
 built. They are explicitly disabled and labelled rather than left looking usable.
 
+## Packaging
+
+`packaging/` holds everything CI uses, and each script runs locally too:
+
+```
+./packaging/linux/build-appimage.sh [out]        # 41 MB AppImage, x86_64
+./packaging/macos/build-app.sh osx-arm64 [out]   # unsigned .app bundle
+./packaging/macos/build-app.sh osx-x64   [out]
+```
+
+Notes worth knowing before touching these:
+
+- **The macOS bundles cross-build from Linux** — a `.app` is only a directory layout plus an
+  `Info.plist`. The icon step is skipped when `iconutil`/`sips` are missing, so a Linux build
+  produces a valid but icon-less bundle. CI builds on a macOS runner, which is also the only
+  place the result gets exercised.
+- **The bundles are unsigned.** macOS quarantines them and reports "damaged", which is misleading;
+  the README documents the `xattr -dr com.apple.quarantine` workaround. Signing needs a paid Apple
+  Developer account and was a deliberate no for now.
+- **`upload-artifact` zips its input and drops the executable bit**, which would leave a `.app`
+  unlaunchable — so the workflow tars the bundle first. Don't "simplify" that away.
+- `appimagetool` is not packaged by most distributions; the script fetches it on demand.
+- Self-contained output is ~102 MB on Linux and ~105–111 MB on macOS. The AppImage compresses to
+  about 41 MB. Trimming would cut this further but Avalonia leans on reflection for XAML, so it
+  needs real testing before being turned on.
+
 ## Tests
 
 `tests/CpuEmulator.Tests` (xUnit). The data files in `data/` are linked into the test output, so
@@ -189,14 +214,12 @@ Loading does not clear RAM first, and there is no assembler — programs are han
 
 ## README vs. implementation
 
-The README table has drifted from `Emulator.cs`; trust the code and fix the README when you touch it:
+The README table used to contradict `Emulator.cs`; it was corrected once the golden tests pinned
+the real behavior. Two things are worth keeping in mind if you edit either:
 
-- L0 opcodes `E` and `F` are swapped relative to the table — in code, `14` is
-  `Mov RAM[REG[a]], REG[b]` (store) and `15` is `Mov REG[b], RAM[REG[a]]` (load).
-- "Clear Flags" (`2,0,0`) is documented but not implemented in `ExecuteCommand_L2`.
 - `ALU_Subraction` computes `B = A - B`, not `B - A`. **This is intentional** (confirmed by the
   author) — `Sub A, B` means "B becomes A minus B", and `Rsub` is the variant that does `B - A`.
   Do not "fix" it; a test asserts it.
 - Overflow is checked against the *unmasked* `uint` result, so a subtraction that borrows wraps to
   a huge `uint` and always sets `Overflow`. Asserted by test as current behavior — unlike the
-  subtraction operand order this has not been confirmed as intended, so treat it as open.
+  subtraction operand order this has never been confirmed as intended, so treat it as open.

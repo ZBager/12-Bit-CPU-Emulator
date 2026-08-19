@@ -1,0 +1,108 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+  # Packaging only runs once the CPU is known good on every platform.
+  appimage:
+    name: package linux (AppImage)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build AppImage
+        run: ./packaging/linux/build-appimage.sh "${{ github.workspace }}/artifacts"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CpuEmulator-linux-x86_64-AppImage
+          path: artifacts/CpuEmulator-x86_64.AppImage
+          if-no-files-found: error
+
+  macos:
+    name: package macos (${{ matrix.rid }})
+    needs: test
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [osx-arm64, osx-x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build .app bundle
+        run: ./packaging/macos/build-app.sh ${{ matrix.rid }} "${{ github.workspace }}/artifacts"
+
+      # upload-artifact zips its input and drops the executable bit, which would
+      # leave the .app unlaunchable. Tar it first so permissions survive.
+      - name: Archive bundle
+        run: tar -czf "CpuEmulator-${{ matrix.rid }}.tar.gz" -C artifacts "CpuEmulator-${{ matrix.rid }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CpuEmulator-${{ matrix.rid }}
+          path: CpuEmulator-${{ matrix.rid }}.tar.gz
+          if-no-files-found: error
+
+  windows:
+    name: package windows (win-x64)
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish self-contained
+        run: >
+          dotnet publish src/CpuEmulator.App
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output artifacts/CpuEmulator-win-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CpuEmulator-win-x64
+          path: artifacts/CpuEmulator-win-x64
+          if-no-files-found: error
