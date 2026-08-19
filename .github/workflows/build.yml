@@ -20,9 +20,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -38,16 +38,16 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
       - name: Build AppImage
         run: ./packaging/linux/build-appimage.sh "${{ github.workspace }}/artifacts"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: CpuEmulator-linux-x86_64-AppImage
           path: artifacts/CpuEmulator-x86_64.AppImage
@@ -62,9 +62,9 @@ jobs:
       matrix:
         rid: [osx-arm64, osx-x64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -76,7 +76,7 @@ jobs:
       - name: Archive bundle
         run: tar -czf "CpuEmulator-${{ matrix.rid }}.tar.gz" -C artifacts "CpuEmulator-${{ matrix.rid }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: CpuEmulator-${{ matrix.rid }}
           path: CpuEmulator-${{ matrix.rid }}.tar.gz
@@ -87,9 +87,9 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -101,7 +101,7 @@ jobs:
           --self-contained true
           --output artifacts/CpuEmulator-win-x64
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: CpuEmulator-win-x64
           path: artifacts/CpuEmulator-win-x64
