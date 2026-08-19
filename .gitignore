@@ -1,4 +1,11 @@
-/bin
-/obj
-/.git
-/.vs
+# Build output
+**/bin/
+**/obj/
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# OS
+.DS_Store

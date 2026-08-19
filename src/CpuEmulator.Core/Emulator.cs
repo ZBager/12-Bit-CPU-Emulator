@@ -28,7 +28,7 @@ namespace CpuEmulator
 		//Try to find a file and if it exists load it to ram
 		public void LoadProgram(string path)
 		{
-			string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), path);
+			string program_path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty, path);
 
 			if (File.Exists(program_path))
 				LoadProgramToRam(File.ReadAllLines(program_path));
