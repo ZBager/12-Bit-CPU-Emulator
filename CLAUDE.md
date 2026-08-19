@@ -9,10 +9,9 @@ RAM/register contents live while a program runs. `README.md` holds the authorita
 instruction-set table; see "README vs. implementation" below for known drift.
 
 **This repo is mid-migration** from WPF on .NET Framework 4.7.2 to Avalonia 12 on .NET 10.
-Phases 1–3 are done and the WPF app has been deleted. The emulator core lives in
-`src/CpuEmulator.Core`, builds and runs on Linux, no longer touches the console, the process or
-the filesystem, and is covered by 57 tests in `tests/CpuEmulator.Tests`. **There is no UI project
-right now** — the Avalonia app arrives in Phase 4. The old WPF sources are recoverable
+Phases 1–4 are done. The emulator core lives in `src/CpuEmulator.Core`, the Avalonia 12 UI in
+`src/CpuEmulator.App`, and 57 tests in `tests/CpuEmulator.Tests`. Everything builds and runs on
+Linux and Windows from one codebase. Phase 5 (data-file encoding, CI, README) is what remains. The old WPF sources are recoverable
 from git history if the port needs them:
 
 ```
@@ -28,11 +27,16 @@ dotnet build                                    # solution: CpuEmulator.sln (cla
 dotnet test                                     # 57 tests, ~70ms
 dotnet test --filter FullyQualifiedName~AluTests            # one class
 dotnet test --filter FullyQualifiedName~Sub_ComputesAMinusB # one test
+
+dotnet run --project src/CpuEmulator.App                    # launch the UI
+dotnet run --project src/CpuEmulator.App data/program.txt   # launch with a program preloaded
 ```
 
-`src/CpuEmulator.Core` is a class library with no UI dependencies and no entry point, so there is
-nothing to `dotnet run` yet — the Avalonia app arrives in Phase 4. To exercise the CPU today, add a
-throwaway console project referencing the Core project.
+The optional command-line path skips the file picker, which makes the app scriptable and is how
+it gets driven when verifying a change by hand.
+
+`src/CpuEmulator.Core` is a class library with no UI dependencies; `src/CpuEmulator.App` is the
+Avalonia front end and the only project with an entry point.
 
 There is no linter. `.github/workflows/dotnet-desktop.yml` is unmodified GitHub boilerplate — its
 `Solution_Name`/`Test_Project_Path`/WAP-packaging env vars are still placeholder strings, so the
@@ -118,25 +122,34 @@ programs clear them by moving `0` into `REG[14]` themselves.
 
 Jumps are not a distinct instruction — writing to `REG[15]` is the jump.
 
-### How the deleted WPF shell worked (Phase 4 must replace this)
+### The Avalonia UI
 
-`Start_CPU` ran `EmulatorUpdate()` on a background `Thread` spinning `NextCommand()` with a 1 ms
-sleep per instruction; a `DispatcherTimer` polled every 10 ms and rebuilt every row object from
-scratch (4096 + 16 per tick) because `Data12Bit` values are copied, not bound. `Next_Tick` stepped
-one instruction on the UI thread.
+`src/CpuEmulator.App`, Avalonia 12, hand-rolled `INotifyPropertyChanged` (no MVVM framework).
+Code-behind rather than view models, matching the shape of the WPF original.
 
-Three defects the replacement must not inherit:
+- **`MemoryRow`** backs both grids. The WPF version rebuilt all 4,112 row objects every 10 ms
+  because `Data12Bit` is a value type and copies do not track later writes. Rows now mutate in
+  place and raise `PropertyChanged` only when a value actually moved, so an idle CPU costs
+  nothing to display and Avalonia's virtualization is not fighting a fresh collection every tick.
+- **Running** happens on a background `Task` with a `CancellationTokenSource`. `Thread.Abort()`
+  does not exist on .NET 10, so Stop is cooperative: the token breaks the run loop *and* closes
+  the input dialog, which is the only way to unblock a CPU parked on input.
+- **Single-stepping also runs off the UI thread.** This looks unnecessary but is not: the
+  user-input instruction blocks until a dialog is answered, and that dialog needs the UI thread.
+  Stepping on the UI thread would deadlock the moment a program hit opcode 7.
+- **`UiInputSource`** implements `IInputSource` by marshalling to the UI thread and blocking its
+  caller. It must never be called *from* the UI thread — see above.
+- **Errors surface in the status bar.** The core reports invalid opcodes as exceptions now, so
+  there has to be somewhere for them to go; previously they killed the process silently.
+- **Reset** reloads the last-loaded program, so it means "start this program over".
 
-- `Stop_CPU` used `Thread.Abort()`, which **throws `PlatformNotSupportedException` on .NET 10**.
-  Needs cooperative `CancellationToken` cancellation — and that token must reach the user-input
-  wait, or Stop will hang exactly when it matters.
-- The `Emulator` instance was never reset, so it could not be restarted after a program halted
-  (`_isCpuRunning` is never set back to true). The core needs a `Reset()`.
-- Rebuilding 4,112 row objects every 10 ms is wasteful; Avalonia's `DataGrid` virtualizes, so use
-  `INotifyPropertyChanged` rows mutated in place instead.
+Two XAML notes for anyone porting more WPF markup: Avalonia 12 defaults to compiled bindings, so
+every bound control needs an `x:DataType` or the build fails with `AVLN2100`; and
+`DataGrid.AlternatingRowBackground` has no Avalonia equivalent — the striping is a
+`DataGridRow:nth-child(2n)` selector in `App.axaml`.
 
-The `programerData` grid, its Up/Down/Write buttons, and the three `ListBox`es were unwired
-placeholders — a program editor that never existed. Porting them is a feature, not a migration.
+The `programerData` grid and its Up/Down/Write buttons are still the program editor that was never
+built. They are explicitly disabled and labelled rather than left looking usable.
 
 ## Tests
 

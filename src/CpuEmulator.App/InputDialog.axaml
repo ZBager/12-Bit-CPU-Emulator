@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		x:Class="CpuEmulator.App.InputDialog"
+		Title="CPU Input Requested"
+		Width="340" SizeToContent="Height"
+		WindowStartupLocation="CenterOwner"
+		CanResize="False">
+	<StackPanel Margin="16" Spacing="10">
+		<TextBlock Text="The program is asking for a value." FontWeight="SemiBold" />
+		<TextBlock Text="Enter up to three hexadecimal digits (000-FFF)." Opacity="0.75" TextWrapping="Wrap" />
+		<TextBox x:Name="valueBox" PlaceholderText="000" MaxLength="3" FontFamily="monospace" />
+		<TextBlock x:Name="errorText" Foreground="#B3261E" IsVisible="False" TextWrapping="Wrap" />
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+			<Button x:Name="okButton" Content="Send to CPU" IsDefault="True" />
+		</StackPanel>
+	</StackPanel>
+</Window>
