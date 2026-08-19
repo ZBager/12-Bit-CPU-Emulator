@@ -3,6 +3,8 @@ name: build
 on:
   push:
     branches: [ main ]
+    # Pushing a v-prefixed tag is what publishes a Release.
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -101,8 +103,85 @@ jobs:
           --self-contained true
           --output artifacts/CpuEmulator-win-x64
 
+      # upload-artifact zips a directory on the way down, but a release asset
+      # must already be a single file, so zip it explicitly.
+      - name: Archive
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/CpuEmulator-win-x64 -DestinationPath CpuEmulator-win-x64.zip
+
       - uses: actions/upload-artifact@v7
         with:
           name: CpuEmulator-win-x64
-          path: artifacts/CpuEmulator-win-x64
+          path: CpuEmulator-win-x64.zip
           if-no-files-found: error
+
+  # Only ever runs for a pushed v* tag. Everything above has already produced
+  # and validated the packages; this job just names them after the tag,
+  # checksums them, and attaches them to a Release so they are downloadable
+  # from the repo front page without a GitHub account.
+  release:
+    name: publish release
+    needs: [appimage, macos, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: staging
+          merge-multiple: true
+
+      - name: Name assets after the tag and checksum them
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          mv "staging/CpuEmulator-x86_64.AppImage"  "dist/CpuEmulator-${version}-x86_64.AppImage"
+          mv "staging/CpuEmulator-osx-arm64.tar.gz" "dist/CpuEmulator-${version}-osx-arm64.tar.gz"
+          mv "staging/CpuEmulator-osx-x64.tar.gz"   "dist/CpuEmulator-${version}-osx-x64.tar.gz"
+          mv "staging/CpuEmulator-win-x64.zip"      "dist/CpuEmulator-${version}-win-x64.zip"
+          cd dist
+          sha256sum ./* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          cat > notes.md <<'NOTES'
+          Cross-platform builds of the 12-bit CPU emulator, produced by CI from this tag.
+
+          | Platform | Download |
+          | --- | --- |
+          | Linux (x86_64) | `*-x86_64.AppImage` — `chmod +x` it, then run |
+          | macOS (Apple Silicon) | `*-osx-arm64.tar.gz` |
+          | macOS (Intel) | `*-osx-x64.tar.gz` |
+          | Windows (x64) | `*-win-x64.zip` |
+
+          Each build is self-contained: the .NET runtime is bundled, so nothing needs installing.
+
+          ### macOS: first run
+
+          These builds are **unsigned**. macOS quarantines unsigned apps downloaded from the
+          internet and reports them as *"damaged and can't be opened"*, which is misleading —
+          the download is fine. Clear the quarantine flag once:
+
+          ```
+          xattr -dr com.apple.quarantine "CPU Emulator.app"
+          ```
+
+          ### Verifying a download
+
+          ```
+          sha256sum -c SHA256SUMS.txt --ignore-missing
+          ```
+          NOTES
+          gh release create "${version}" dist/* \
+            --title "${version}" \
+            --notes-file notes.md \
+            --verify-tag
