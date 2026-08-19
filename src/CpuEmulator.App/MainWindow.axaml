@@ -2,7 +2,8 @@
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:local="clr-namespace:CpuEmulator.App"
 		x:Class="CpuEmulator.App.MainWindow"
-		Title="CPU Emulator" Height="560" Width="1040" MinWidth="900" MinHeight="440">
+		Title="CPU Emulator" Icon="/Assets/cpuemulator.ico"
+		Height="560" Width="1040" MinWidth="900" MinHeight="440">
 
 	<Grid Background="LightBlue">
 		<Grid.RowDefinitions>

@@ -160,6 +160,30 @@ built. They are explicitly disabled and labelled rather than left looking usable
 ./packaging/macos/build-app.sh osx-x64   [out]
 ```
 
+### Icons
+
+`packaging/assets/cpuemulator.svg` is the **master**; every other icon is generated from it, so
+edit the SVG and regenerate rather than touching the rasters:
+
+```
+rsvg-convert -w 1024 -h 1024 packaging/assets/cpuemulator.svg -o packaging/assets/cpuemulator.png
+# .ico: render 16/32/48/64/128/256 and combine with `magick a.png b.png ... out.ico`
+cp packaging/assets/cpuemulator.ico src/CpuEmulator.App/Assets/cpuemulator.ico
+```
+
+Where each one is consumed:
+
+| File | Used by |
+| --- | --- |
+| `cpuemulator.svg` | master source |
+| `cpuemulator.png` (1024px) | AppImage `.DirIcon`, and the macOS `.icns` built in CI |
+| `cpuemulator.ico` (6 sizes) | `<ApplicationIcon>` on the Windows exe, and the Avalonia `Window.Icon` |
+| `src/CpuEmulator.App/Assets/cpuemulator.ico` | embedded as an `AvaloniaResource`; the copy the running app loads |
+
+The app copy is deliberate duplication — `AvaloniaResource` paths are resolved relative to the
+project, so the app cannot reference `packaging/` without a link that breaks `dotnet publish`.
+Keep the two in sync when the icon changes.
+
 Notes worth knowing before touching these:
 
 - **The macOS bundles cross-build from Linux** — a `.app` is only a directory layout plus an

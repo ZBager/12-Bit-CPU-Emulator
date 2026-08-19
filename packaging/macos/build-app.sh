@@ -40,9 +40,16 @@ if command -v iconutil >/dev/null 2>&1 && command -v sips >/dev/null 2>&1; then
     echo "==> Building icon"
     ICONSET="$(mktemp -d)/cpuemulator.iconset"
     mkdir -p "${ICONSET}"
-    for size in 16 32 64 128 256 512; do
-        sips -z ${size} ${size} "${REPO_ROOT}/packaging/assets/cpuemulator.png" \
-            --out "${ICONSET}/icon_${size}x${size}.png" >/dev/null
+    SRC="${REPO_ROOT}/packaging/assets/cpuemulator.png"
+    # A complete iconset needs both the logical size and its @2x retina variant.
+    # The master render is 1024px square so every one of these downscales cleanly.
+    for pair in "16 32" "32 64" "128 256" "256 512" "512 1024"; do
+        set -- ${pair}
+        logical=$1; retina=$2
+        sips -z ${logical} ${logical} "${SRC}" \
+            --out "${ICONSET}/icon_${logical}x${logical}.png" >/dev/null
+        sips -z ${retina} ${retina} "${SRC}" \
+            --out "${ICONSET}/icon_${logical}x${logical}@2x.png" >/dev/null
     done
     iconutil -c icns "${ICONSET}" -o "${APP}/Contents/Resources/cpuemulator.icns"
 else
