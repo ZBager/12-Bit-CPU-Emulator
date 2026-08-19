@@ -9,10 +9,10 @@ RAM/register contents live while a program runs. `README.md` holds the authorita
 instruction-set table; see "README vs. implementation" below for known drift.
 
 **This repo is mid-migration** from WPF on .NET Framework 4.7.2 to Avalonia 12 on .NET 10.
-Phases 1 and 2 are done and the WPF app has been deleted. The emulator core lives in
-`src/CpuEmulator.Core`, builds and runs on Linux, and no longer touches the console, the
-process, or the filesystem. **There is no UI project right now** — the Avalonia app arrives in
-Phase 4, and tests in Phase 3. The old WPF sources are recoverable
+Phases 1–3 are done and the WPF app has been deleted. The emulator core lives in
+`src/CpuEmulator.Core`, builds and runs on Linux, no longer touches the console, the process or
+the filesystem, and is covered by 57 tests in `tests/CpuEmulator.Tests`. **There is no UI project
+right now** — the Avalonia app arrives in Phase 4. The old WPF sources are recoverable
 from git history if the port needs them:
 
 ```
@@ -24,15 +24,17 @@ git show main:MainWindow.xaml      # and App.xaml, MainWindow.xaml.cs, App.xaml.
 .NET 10, SDK-style projects, cross-platform. Builds on Linux:
 
 ```
-dotnet build          # solution: CpuEmulator.sln (classic .sln, not .slnx, for VS compat)
+dotnet build                                    # solution: CpuEmulator.sln (classic .sln, not .slnx, for VS compat)
+dotnet test                                     # 57 tests, ~70ms
+dotnet test --filter FullyQualifiedName~AluTests            # one class
+dotnet test --filter FullyQualifiedName~Sub_ComputesAMinusB # one test
 ```
 
 `src/CpuEmulator.Core` is a class library with no UI dependencies and no entry point, so there is
 nothing to `dotnet run` yet — the Avalonia app arrives in Phase 4. To exercise the CPU today, add a
 throwaway console project referencing the Core project.
 
-There are still no tests (they arrive in Phase 3) and no linter.
-`.github/workflows/dotnet-desktop.yml` is unmodified GitHub boilerplate — its
+There is no linter. `.github/workflows/dotnet-desktop.yml` is unmodified GitHub boilerplate — its
 `Solution_Name`/`Test_Project_Path`/WAP-packaging env vars are still placeholder strings, so the
 workflow does not build this project. It gets replaced in Phase 5; don't treat it as a signal of
 how the project is built.
@@ -136,6 +138,28 @@ Three defects the replacement must not inherit:
 The `programerData` grid, its Up/Down/Write buttons, and the three `ListBox`es were unwired
 placeholders — a program editor that never existed. Porting them is a feature, not a migration.
 
+## Tests
+
+`tests/CpuEmulator.Tests` (xUnit). The data files in `data/` are linked into the test output, so
+tests run against the same programs the app ships rather than against copies that can drift.
+
+The regression net has two layers:
+
+- **Golden tests** (`GoldenProgramTests`) run the real programs end to end. `program.txt` must halt
+  after **exactly 1655 instructions**, and `program1.txt` after **16323** with a scripted input.
+  `Golden/program.ram.txt` is a full 4096-word RAM snapshot compared word for word — the strongest
+  assertion available, and the thing that makes it safe to rewrite the UI.
+- **Unit tests** pin the sharp edges an unwary refactor would smooth over: subtraction operand
+  order, overflow computed on the unmasked `uint`, the `REG[13] & REG[14]` condition mask,
+  immediates consuming the following word, and flags being set-only.
+
+To regenerate the golden snapshot after a *deliberate* behavior change, run `program.txt` to a halt
+and write `emulator.DumpRam()` over `Golden/program.ram.txt`. Comparison is line-ending-insensitive
+(`Cpu.Normalize`) so it holds on Linux and Windows alike.
+
+`Cpu.cs` holds the helpers: `Cpu.W(argB, argA, instruction)` assembles a word, `Cpu.L1`/`Cpu.L2`
+assemble the deeper decode tiers, and `ScriptedInput`/`BlockingInput` stand in for `IInputSource`.
+
 ## Program files
 
 `data/*.txt`: one 3-hex-digit word per line, `//`-prefixed lines are comments (existing comments are
@@ -157,6 +181,9 @@ The README table has drifted from `Emulator.cs`; trust the code and fix the READ
 - L0 opcodes `E` and `F` are swapped relative to the table — in code, `14` is
   `Mov RAM[REG[a]], REG[b]` (store) and `15` is `Mov REG[b], RAM[REG[a]]` (load).
 - "Clear Flags" (`2,0,0`) is documented but not implemented in `ExecuteCommand_L2`.
-- `ALU_Subraction` computes `B = A - B`, not `B - A` (the reversed variant is the one that does
-  `B - A`). Overflow is checked against the *unmasked* `uint` result, so subtraction that borrows
-  wraps to a huge `uint` and always sets `Overflow`.
+- `ALU_Subraction` computes `B = A - B`, not `B - A`. **This is intentional** (confirmed by the
+  author) — `Sub A, B` means "B becomes A minus B", and `Rsub` is the variant that does `B - A`.
+  Do not "fix" it; a test asserts it.
+- Overflow is checked against the *unmasked* `uint` result, so a subtraction that borrows wraps to
+  a huge `uint` and always sets `Overflow`. Asserted by test as current behavior — unlike the
+  subtraction operand order this has not been confirmed as intended, so treat it as open.
