@@ -9,10 +9,14 @@ RAM/register contents live while a program runs. `README.md` holds the authorita
 instruction-set table; see "README vs. implementation" below for known drift.
 
 **This repo is mid-migration** from WPF on .NET Framework 4.7.2 to Avalonia 12 on .NET 10.
-Phase 1 (SDK-style projects, core extracted) is done. The emulator core now lives in
-`src/CpuEmulator.Core` and builds and runs on Linux. There is not yet a UI project — the
-WPF files still at the repo root are **stale reference material** for the Avalonia port,
-not a buildable project.
+Phase 1 (SDK-style projects, core extracted) is done and the WPF app has been deleted. The
+emulator core lives in `src/CpuEmulator.Core` and builds and runs on Linux. **There is no UI
+project right now** — the Avalonia app arrives in Phase 4. The old WPF sources are recoverable
+from git history if the port needs them:
+
+```
+git show main:MainWindow.xaml      # and App.xaml, MainWindow.xaml.cs, App.xaml.cs
+```
 
 ## Build & run
 
@@ -34,7 +38,7 @@ how the project is built.
 
 ## Architecture
 
-Three source files carry all the logic:
+Two source files carry all the logic:
 
 - `src/CpuEmulator.Core/Data12Bit.cs` — a **struct** wrapping a `uint` whose setter masks with `0xfff`. All 12-bit
   wraparound in the emulator comes from this one mask; nothing else truncates. Because it is a
@@ -42,7 +46,9 @@ Three source files carry all the logic:
   or direct array-element access (`RAM[i].Val = ...`, `CPU_Move(ref REG[b], ...)`).
 - `src/CpuEmulator.Core/Emulator.cs` — the CPU itself. State is `RAM[4096]` and `REG[16]`, both public so the UI can read
   them.
-- `MainWindow.xaml(.cs)` (repo root, **stale — pre-migration WPF**) — the shell: buttons, two read-only `DataGrid`s, and the run loop.
+
+There is no UI layer in the tree at present; the section below records how the deleted WPF shell
+worked, because Phase 4 has to reproduce its behavior.
 
 ### Instruction decoding
 
@@ -79,26 +85,39 @@ programs clear them by moving `0` into `REG[14]` themselves.
 
 Jumps are not a distinct instruction — writing to `REG[15]` is the jump.
 
-### GUI/emulator coupling
+### How the deleted WPF shell worked (Phase 4 must replace this)
 
-`Start_CPU` runs `EmulatorUpdate()` on a background `Thread` that spins `NextCommand()` with a 1 ms
-sleep per instruction; a `DispatcherTimer` polls every 10 ms and rebuilds every `DataGridClass` row
-from scratch (4096 + 16 objects per tick) because `Data12Bit` values are copied, not bound. `Next_Tick`
-steps one instruction on the UI thread. `Stop_CPU` uses `Thread.Abort()` and replaces the thread
-object; the `Emulator` instance is *not* reset, so state persists across stop/start and the emulator
-cannot be restarted once a program executes `Stop` (`_isCpuRunning` is never set back to true).
+`Start_CPU` ran `EmulatorUpdate()` on a background `Thread` spinning `NextCommand()` with a 1 ms
+sleep per instruction; a `DispatcherTimer` polled every 10 ms and rebuilt every row object from
+scratch (4096 + 16 per tick) because `Data12Bit` values are copied, not bound. `Next_Tick` stepped
+one instruction on the UI thread.
 
-The `programerData` grid, its Up/Down/Write buttons, and the three `ListBox`es on the right side are
-unwired placeholders — a program editor that does not exist yet.
+Three defects the replacement must not inherit:
+
+- `Stop_CPU` used `Thread.Abort()`, which **throws `PlatformNotSupportedException` on .NET 10**.
+  Needs cooperative `CancellationToken` cancellation — and that token must reach the user-input
+  wait, or Stop will hang exactly when it matters.
+- The `Emulator` instance was never reset, so it could not be restarted after a program halted
+  (`_isCpuRunning` is never set back to true). The core needs a `Reset()`.
+- Rebuilding 4,112 row objects every 10 ms is wasteful; Avalonia's `DataGrid` virtualizes, so use
+  `INotifyPropertyChanged` rows mutated in place instead.
+
+The `programerData` grid, its Up/Down/Write buttons, and the three `ListBox`es were unwired
+placeholders — a program editor that never existed. Porting them is a feature, not a migration.
 
 ## Program files
 
 `data/*.txt`: one 3-hex-digit word per line, `//`-prefixed lines are comments (existing comments are
-Polish and stored in a non-UTF-8 encoding). `LoadProgram` resolves paths relative to the *assembly
-location*, and `Load_Program` hardcodes `..\..\data\program.txt` — i.e. it only works when running
-from `bin\Debug` / `bin\Release`. The data files are not copied by the build; the relative path walks
-back to the repo root. Loading does not clear RAM first, and there is no assembler — programs are
-hand-assembled hex.
+Polish; `program.txt` is CP1250 with CRLF endings, `program1.txt` is UTF-8). `LoadProgram` still
+resolves paths relative to the *assembly location*, which is broken on Linux — `Path.Combine` does
+not normalize the `..\..\data\` backslashes and yields one literal filename. Phase 2 replaces this
+with a pure parse function plus a thin file wrapper, and Phase 5 marks the data files as
+`CopyToOutputDirectory`. Passing an absolute path works today as a stopgap.
+
+Loading does not clear RAM first, and there is no assembler — programs are hand-assembled hex.
+`program.txt` is a 63-word bubble sort with no user-input opcode, so it runs unattended to a halt
+(1655 instructions, data at `0x30..0x3F` sorted ascending) — this is the Phase 3 golden test.
+`program1.txt` uses opcode `270` (user input into `REG[2]`) and needs a scripted input source.
 
 ## README vs. implementation
 
