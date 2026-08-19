@@ -9,9 +9,10 @@ RAM/register contents live while a program runs. `README.md` holds the authorita
 instruction-set table; see "README vs. implementation" below for known drift.
 
 **This repo is mid-migration** from WPF on .NET Framework 4.7.2 to Avalonia 12 on .NET 10.
-Phase 1 (SDK-style projects, core extracted) is done and the WPF app has been deleted. The
-emulator core lives in `src/CpuEmulator.Core` and builds and runs on Linux. **There is no UI
-project right now** — the Avalonia app arrives in Phase 4. The old WPF sources are recoverable
+Phases 1 and 2 are done and the WPF app has been deleted. The emulator core lives in
+`src/CpuEmulator.Core`, builds and runs on Linux, and no longer touches the console, the
+process, or the filesystem. **There is no UI project right now** — the Avalonia app arrives in
+Phase 4, and tests in Phase 3. The old WPF sources are recoverable
 from git history if the port needs them:
 
 ```
@@ -49,6 +50,36 @@ Two source files carry all the logic:
 
 There is no UI layer in the tree at present; the section below records how the deleted WPF shell
 worked, because Phase 4 has to reproduce its behavior.
+
+### Driving the core
+
+The core is a plain library with no ambient dependencies. A host wires it up like this:
+
+```csharp
+var cpu = new Emulator(inputSource);              // inputSource optional
+cpu.LoadProgram(ProgramLoader.ParseFile(path));   // or ProgramLoader.Parse(lines)
+while (cpu.IsRunning())
+    cpu.NextCommand(cancellationToken);
+cpu.Reset();                                      // makes it runnable again
+```
+
+Four seams exist so the CPU can be tested and hosted without a console (added in Phase 2):
+
+- **`ProgramLoader`** — `Parse` is pure over lines; `ParseFile` is the only file I/O in the core.
+  `Emulator.LoadProgram` now takes already-parsed words, not a path.
+- **`IInputSource`** — supplies the user-input instruction (L1 opcode 7). Prompting, validation
+  and retry are the *host's* job; the CPU just blocks on `ReadValue`. Constructing an `Emulator`
+  without one and then running a program that uses the instruction throws rather than hanging.
+- **`InvalidOpcodeException`** — carries the decode level, address and raw word. Replaces
+  `Environment.Exit(1|2|3)`, which used to kill the host process silently.
+- **`ProgramFormatException`** — carries the 1-based line number of a bad listing line.
+
+`DumpRam()`, `DumpRegisters()` and `DumpFlags()` return strings (they used to write to `Console`),
+which makes them usable in test failure messages.
+
+The `cancellationToken` on `NextCommand` is observed *only* while blocked on user input — a host
+stopping a running CPU otherwise just stops calling the method. This is what Phase 4 needs so the
+Stop button can interrupt a CPU parked on input.
 
 ### Instruction decoding
 
@@ -108,14 +139,14 @@ placeholders — a program editor that never existed. Porting them is a feature,
 ## Program files
 
 `data/*.txt`: one 3-hex-digit word per line, `//`-prefixed lines are comments (existing comments are
-Polish; `program.txt` is CP1250 with CRLF endings, `program1.txt` is UTF-8). `LoadProgram` still
-resolves paths relative to the *assembly location*, which is broken on Linux — `Path.Combine` does
-not normalize the `..\..\data\` backslashes and yields one literal filename. Phase 2 replaces this
-with a pure parse function plus a thin file wrapper, and Phase 5 marks the data files as
-`CopyToOutputDirectory`. Passing an absolute path works today as a stopgap.
+Polish; `program.txt` is CP1250 with CRLF endings, `program1.txt` is UTF-8 — Phase 5 re-encodes).
+`ProgramLoader.Parse(IEnumerable<string>)` is a pure function and is what tests should use;
+`ProgramLoader.ParseFile(path)` is the only file-touching code in the core and resolves paths
+against the working directory like any normal program. Phase 5 marks the data files as
+`CopyToOutputDirectory`.
 
 Loading does not clear RAM first, and there is no assembler — programs are hand-assembled hex.
-`program.txt` is a 63-word bubble sort with no user-input opcode, so it runs unattended to a halt
+`program.txt` is a 64-word bubble sort with no user-input opcode, so it runs unattended to a halt
 (1655 instructions, data at `0x30..0x3F` sorted ascending) — this is the Phase 3 golden test.
 `program1.txt` uses opcode `270` (user input into `REG[2]`) and needs a scripted input source.
 
