@@ -11,12 +11,24 @@ dotnet run --project src/CpuEmulator.App data/program.txt   # launch with a prog
 dotnet test                                                 # run the test suite
 ```
 
-Prebuilt downloads are produced by CI for Linux (AppImage), macOS (Intel and Apple Silicon) and
-Windows. The Linux AppImage needs `chmod +x` after download.
+## Downloads
+
+Prebuilt, self-contained builds are on the [Releases page](../../releases) — the .NET runtime is
+bundled, so nothing needs installing.
+
+| Platform | Asset |
+| --- | --- |
+| Linux (x86_64) | `*-x86_64.AppImage` — `chmod +x` it, then run |
+| macOS (Apple Silicon) | `*-osx-arm64.tar.gz` |
+| macOS (Intel) | `*-osx-x64.tar.gz` |
+| Windows (x64) | `*-win-x64.zip` |
+
+Verify a download against the published checksums with
+`sha256sum -c SHA256SUMS.txt --ignore-missing`.
 
 **The macOS builds are unsigned.** macOS quarantines unsigned apps downloaded from the internet
 and reports them as *"damaged and can't be opened"*, which is misleading — the download is fine.
-To run it:
+Clear the quarantine flag once:
 
 ```
 xattr -dr com.apple.quarantine "CPU Emulator.app"

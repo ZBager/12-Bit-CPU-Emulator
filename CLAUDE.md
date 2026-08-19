@@ -40,7 +40,16 @@ it gets driven when verifying a change by hand.
 Avalonia front end and the only project with an entry point.
 
 There is no linter. `.github/workflows/build.yml` builds and tests on Linux, macOS and Windows,
-then packages all three.
+then packages all three. Pushing a `v*` tag additionally publishes a GitHub Release:
+
+```
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+Releases exist because **Actions artifacts require a GitHub login even on a public repo** (an
+anonymous download returns 401) and expire after 90 days. Release assets are anonymous and
+permanent. The release job renames each asset after the tag, publishes SHA256SUMS.txt alongside
+them, and is the only job needing `permissions: contents: write`.
 
 ## Architecture
 
